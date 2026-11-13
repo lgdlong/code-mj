@@ -41,18 +41,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useState<Lang>("vi");
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setTheme(savedTheme);
-      document.documentElement.setAttribute("data-theme", savedTheme);
-    } else {
-      document.documentElement.setAttribute("data-theme", "dark");
-    }
-
-    const savedLang = localStorage.getItem(LANG_STORAGE_KEY);
-    if (savedLang === "en" || savedLang === "vi") {
-      setLang(savedLang);
-    }
+    let active = true;
+    document.documentElement.setAttribute("data-theme", "dark");
+    fetch("/api/users/me/settings")
+      .then(async (res) => {
+        if (!active || !res.ok) return;
+        const json = (await res.json()) as { data?: { theme?: Theme; lang?: Lang } };
+        const dbTheme: Theme = json.data?.theme === "light" ? "light" : "dark";
+        const dbLang: Lang = json.data?.lang === "en" ? "en" : "vi";
+        setTheme(dbTheme);
+        setLang(dbLang);
+        document.documentElement.setAttribute("data-theme", dbTheme);
+        localStorage.setItem(THEME_STORAGE_KEY, dbTheme);
+        localStorage.setItem(LANG_STORAGE_KEY, dbLang);
+      })
+      .catch(() => {
+        // Unauthenticated or offline: keep default dark + vi
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const toggleTheme = useCallback(() => {
@@ -60,6 +68,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       const next: Theme = prev === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
       localStorage.setItem(THEME_STORAGE_KEY, next);
+      void fetch("/api/users/me/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: next }),
+      }).catch(() => {});
       return next;
     });
   }, []);
@@ -68,10 +81,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     setLang((prev) => {
       const next: Lang = prev === "vi" ? "en" : "vi";
       localStorage.setItem(LANG_STORAGE_KEY, next);
+      void fetch("/api/users/me/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang: next }),
+      }).catch(() => {});
       return next;
     });
   }, []);
-
   const t = useCallback(
     (key: I18nKey): string => I18N[lang][key],
     [lang]
