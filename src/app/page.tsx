@@ -10,12 +10,16 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const posts = await prisma.post.findMany({
+  const rows = await prisma.post.findMany({
     where: { author: { banned: false } },
     orderBy: { createdAt: "desc" },
-    take: FEED_PAGE_SIZE,
+    take: FEED_PAGE_SIZE + 1,
     include: postIncludeForUser(user.id),
   });
+
+  const hasMore = rows.length > FEED_PAGE_SIZE;
+  const initialPosts = (hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows).map(mapPostToDTO);
+  const initialNextCursor = hasMore ? (initialPosts[initialPosts.length - 1]?.id ?? null) : null;
 
   return (
     <FeedClient
@@ -25,7 +29,8 @@ export default async function HomePage() {
         name: user.name,
         image: user.image,
       }}
-      initialPosts={posts.map(mapPostToDTO)}
+      initialPosts={initialPosts}
+      initialNextCursor={initialNextCursor}
     />
   );
 }

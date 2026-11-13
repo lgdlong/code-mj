@@ -1,14 +1,14 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type InfiniteData, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { MoreSheet, type MoreSheetTarget } from "@/components/more-sheet";
 import { PostCard, UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
-import { useFeedMutations } from "@/hooks/use-feed-mutations";
+import { type FeedPage, useFeedMutations } from "@/hooks/use-feed-mutations";
 
 const ConfirmModal = dynamic(() => import("@/components/confirm-modal").then((m) => m.ConfirmModal), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/report-modal").then((m) => m.ReportModal), { ssr: false });
@@ -23,18 +23,20 @@ interface FeedClientProps {
     image: string | null;
   };
   initialPosts: PostDTO[];
+  initialNextCursor: string | null;
 }
 
-async function fetchFeed(): Promise<PostDTO[]> {
-  const res = await fetch("/api/posts?tab=all");
-  const json = (await res.json()) as { data?: { items: PostDTO[] }; error?: string };
+async function fetchFeedPage(cursor: string | null): Promise<FeedPage> {
+  const url = cursor ? `/api/posts?tab=all&cursor=${encodeURIComponent(cursor)}` : "/api/posts?tab=all";
+  const res = await fetch(url);
+  const json = (await res.json()) as { data?: FeedPage; error?: string };
   if (!res.ok || !json.data) {
     throw new Error(json.error ?? "errFeedLoad");
   }
-  return json.data.items;
+  return json.data;
 }
 
-export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
+export function FeedClient({ currentUser, initialPosts, initialNextCursor }: FeedClientProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t, lang, showToast } = useAppPreferences();
@@ -43,13 +45,42 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
   const [reportTarget, setReportTarget] = useState<MoreSheetTarget | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const { toggleLike, toggleFollow } = useFeedMutations();
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: posts = [], isLoading, error: feedError } = useQuery({
+  const {
+    data,
+    isLoading,
+    error: feedError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["feed"],
-    queryFn: fetchFeed,
-    initialData: initialPosts,
+    queryFn: ({ pageParam }) => fetchFeedPage(pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialData: {
+      pages: [{ items: initialPosts, nextCursor: initialNextCursor }],
+      pageParams: [null],
+    },
   });
 
+  const posts = data?.pages.flatMap((page) => page.items) ?? [];
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasNextPage || isFetchingNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   async function confirmDelete() {
     if (!deleteTarget || actionLoading) return;
     setActionLoading(true);
@@ -59,8 +90,14 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
         showToast(await readApiError(res, lang, "errDeletePost"), "error");
         return;
       }
-      queryClient.setQueryData<PostDTO[]>(["feed"], (prev) =>
-        prev?.filter((p) => p.id !== deleteTarget.postId)
+      queryClient.setQueryData<InfiniteData<FeedPage>>(["feed"], (prev) =>
+        prev && {
+          ...prev,
+          pages: prev.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((p) => p.id !== deleteTarget.postId),
+          })),
+        }
       );
       void queryClient.invalidateQueries({ queryKey: ["feed"] });
       setDeleteTarget(null);
@@ -148,6 +185,15 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
             }
           />
         ))
+      )}
+
+      {hasNextPage && (
+        <div
+          ref={sentinelRef}
+          style={{ padding: "20px 16px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}
+        >
+          {isFetchingNextPage ? "..." : ""}
+        </div>
       )}
 
       <MoreSheet
