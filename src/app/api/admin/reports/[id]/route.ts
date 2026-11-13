@@ -45,6 +45,13 @@ export async function PATCH(
         report.targetType === "comment" && report.comment
           ? report.comment.authorId
           : report.post.authorId;
+      const targetUser = await prisma.user.findUnique({
+        where: { id: targetUserId },
+        select: { role: true },
+      });
+      if (targetUser?.role === "admin") {
+        return jsonError("Cannot ban an admin account", 403, "errCannotBanAdmin");
+      }
 
       await prisma.$transaction([
         prisma.user.update({

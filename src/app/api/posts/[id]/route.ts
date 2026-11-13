@@ -1,6 +1,6 @@
 import { MAX_POST_LENGTH } from "@/lib/constants";
 import { destroyCloudinaryAsset } from "@/server/cloudinary";
-import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId } from "@/server/http";
+import { handleApiError, isSafeMediaUrl, jsonError, jsonOk, parseJsonBody, parsePostId } from "@/server/http";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
@@ -64,13 +64,15 @@ export async function PATCH(
         : null
       : existing.imagePublicId;
 
+    if (nextImageUrl && !isSafeMediaUrl(nextImageUrl)) {
+      return jsonError("Invalid image URL", 400, "errInvalidMediaUrl");
+    }
     if (!content && !nextImageUrl) {
-      return jsonError("Post must contain text or an image", 400);
+      return jsonError("Post must contain text or an image", 400, "errPostEmpty");
     }
     if (content.length > MAX_POST_LENGTH) {
-      return jsonError(`Post content exceeds ${MAX_POST_LENGTH} characters`, 400);
+      return jsonError(`Post content exceeds ${MAX_POST_LENGTH} characters`, 400, "errPostTooLong");
     }
-
     if (
       existing.imagePublicId &&
       existing.imagePublicId !== nextImagePublicId

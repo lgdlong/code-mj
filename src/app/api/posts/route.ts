@@ -1,5 +1,5 @@
 import { FEED_PAGE_SIZE, MAX_POST_LENGTH } from "@/lib/constants";
-import { generatePostId, handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId } from "@/server/http";
+import { generatePostId, handleApiError, isSafeMediaUrl, jsonError, jsonOk, parseJsonBody, parsePostId } from "@/server/http";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
@@ -63,13 +63,15 @@ export async function POST(req: Request) {
         ? body.imagePublicId.trim()
         : null;
 
+    if (imageUrl && !isSafeMediaUrl(imageUrl)) {
+      return jsonError("Invalid image URL", 400, "errInvalidMediaUrl");
+    }
     if (!content && !imageUrl) {
-      return jsonError("Post must contain text or an image", 400);
+      return jsonError("Post must contain text or an image", 400, "errPostEmpty");
     }
     if (content.length > MAX_POST_LENGTH) {
-      return jsonError(`Post content exceeds ${MAX_POST_LENGTH} characters`, 400);
+      return jsonError(`Post content exceeds ${MAX_POST_LENGTH} characters`, 400, "errPostTooLong");
     }
-
     const created = await prisma.post.create({
       data: {
         id: generatePostId(),

@@ -4,7 +4,7 @@ import {
   MAX_USERNAME_LENGTH,
   USERNAME_CHANGE_COOLDOWN_DAYS,
 } from "@/lib/constants";
-import { handleApiError, jsonError, jsonOk, parseJsonBody } from "@/server/http";
+import { handleApiError, isSafeMediaUrl, jsonError, jsonOk, parseJsonBody } from "@/server/http";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
 
@@ -78,7 +78,9 @@ export async function PATCH(req: Request) {
         : body.image === null
         ? null
         : undefined;
-
+    if (typeof nextImage === "string" && !isSafeMediaUrl(nextImage, true)) {
+      return jsonError("Invalid image URL", 400, "errInvalidMediaUrl");
+    }
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {

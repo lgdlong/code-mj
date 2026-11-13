@@ -33,21 +33,28 @@ export async function POST(req: Request) {
     }
 
     const reasonRaw = typeof body.reason === "string" ? body.reason.trim() : "";
-    const reason = (reasonRaw || "Nội dung không phù hợp").slice(0, MAX_REPORT_REASON_LENGTH);
+    if (!reasonRaw) {
+      return jsonError("Report reason is required", 400, "reportNeedReason");
+    }
+    const reason = reasonRaw.slice(0, MAX_REPORT_REASON_LENGTH);
 
-    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true } });
     if (!post) return jsonError("Post not found", 404);
 
     if (commentId) {
       const comment = await prisma.comment.findUnique({
         where: { id: commentId },
-        select: { id: true, postId: true },
+        select: { id: true, postId: true, authorId: true },
       });
       if (!comment || comment.postId !== postId) {
         return jsonError("Comment not found", 404);
       }
+      if (comment.authorId === user.id) {
+        return jsonError("You cannot report your own content", 400, "errReportSelf");
+      }
+    } else if (post.authorId === user.id) {
+      return jsonError("You cannot report your own content", 400, "errReportSelf");
     }
-
     const report = await prisma.report.create({
       data: {
         reporterId: user.id,

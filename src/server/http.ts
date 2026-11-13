@@ -44,3 +44,15 @@ export function parsePositiveInt(raw: string): number | null {
   if (!Number.isInteger(num) || num <= 0) return null;
   return num;
 }
+
+export function isSafeMediaUrl(url: string, allowGoogleAvatar = false): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    if (parsed.hostname === "res.cloudinary.com") return true;
+    if (allowGoogleAvatar && parsed.hostname.endsWith(".googleusercontent.com")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
