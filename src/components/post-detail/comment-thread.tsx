@@ -6,10 +6,13 @@ import type { MoreSheetTarget } from "@/components/more-sheet";
 import { UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
 import type { CommentDTO } from "@/types/domain";
+const MENTION_REGEX = /(@[a-zA-Z0-9_][a-zA-Z0-9_.]{1,22}[a-zA-Z0-9_])/g;
+const MENTION_EXACT = /^@[a-zA-Z0-9_][a-zA-Z0-9_.]{1,22}[a-zA-Z0-9_]$/;
+
 function renderMentions(text: string) {
-  const parts = text.split(/(@[a-zA-Z0-9_]{3,24})/g);
+  const parts = text.split(MENTION_REGEX);
   return parts.map((part, i) => {
-    if (/^@[a-zA-Z0-9_]{3,24}$/.test(part)) {
+    if (MENTION_EXACT.test(part)) {
       const username = part.slice(1).toLowerCase();
       return (
         <Link
