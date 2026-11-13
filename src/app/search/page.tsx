@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { AppShell } from "@/components/app-shell";
 import { useAppPreferences } from "@/components/providers";
@@ -11,12 +11,19 @@ import { RECENT_SEARCH_LIMIT } from "@/lib/constants";
 import type { PostDTO, UserSummaryDTO } from "@/types/domain";
 
 const RECENT_KEY = "marjames_recent_searches";
+type SearchFilter = "top" | "recent";
 
-export default function SearchPage() {
+function SearchInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useAppPreferences();
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  const initialQ = searchParams.get("q") ?? "";
+  const initialFilter: SearchFilter = searchParams.get("filter") === "recent" ? "recent" : "top";
+
+  const [query, setQuery] = useState(initialQ);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQ.trim());
+  const [filter, setFilter] = useState<SearchFilter>(initialFilter);
   const [recent, setRecent] = useState<RecentEntry[]>([]);
 
   useEffect(() => {
@@ -33,30 +40,41 @@ export default function SearchPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDebouncedQuery(query.trim());
+      const trimmed = query.trim();
+      setDebouncedQuery(trimmed);
+      const params = new URLSearchParams();
+      if (trimmed) {
+        params.set("q", trimmed);
+        params.set("filter", filter);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `/search?${qs}` : "/search", { scroll: false });
     }, 220);
     return () => window.clearTimeout(timer);
-  }, [query]);
+  }, [query, filter, router]);
 
   const { data: searchData, isFetching: loading } = useQuery({
-    queryKey: ["search", debouncedQuery],
+    queryKey: ["search", debouncedQuery, filter],
     enabled: debouncedQuery.length > 0,
     queryFn: async () => {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`);
+      const res = await fetch(
+        `/api/search?q=${encodeURIComponent(debouncedQuery)}&filter=${filter}`
+      );
       const json = (await res.json()) as {
         data?: { users: UserSummaryDTO[]; posts: PostDTO[] };
       };
-      if (!res.ok || !json.data) {
-        throw new Error("Search failed");
-      }
+      if (!res.ok || !json.data) throw new Error("Search failed");
       return json.data;
     },
   });
 
   function saveRecent(entry: RecentEntry) {
+    const val = entry.value.trim();
+    if (!val) return;
+    const normalized = { ...entry, value: val };
     const next = [
-      entry,
-      ...recent.filter((r) => !(r.type === entry.type && r.value === entry.value)),
+      normalized,
+      ...recent.filter((r) => !(r.type === normalized.type && r.value === normalized.value)),
     ].slice(0, RECENT_SEARCH_LIMIT);
     setRecent(next);
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
@@ -68,9 +86,18 @@ export default function SearchPage() {
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setDebouncedQuery(trimmed);
+    saveRecent({ type: "keyword", value: trimmed });
+  }
+
   return (
     <AppShell username="" showHeader={false}>
-      <div
+      <form
+        onSubmit={handleSubmit}
         style={{
           position: "sticky",
           top: 0,
@@ -118,7 +145,22 @@ export default function SearchPage() {
         <button type="button" onClick={() => router.push("/")} style={{ fontSize: 15, fontWeight: 500 }}>
           {t("cancel")}
         </button>
-      </div>
+      </form>
+
+      {query.trim() && (
+        <div className="feed-tabs">
+          {(["top", "recent"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={`feed-tab${filter === tab ? " active" : ""}`}
+              onClick={() => setFilter(tab)}
+            >
+              {tab === "top" ? t("searchFilterTop") : t("searchFilterRecent")}
+            </button>
+          ))}
+        </div>
+      )}
 
       <SearchResults
         hasQuery={Boolean(query.trim())}
@@ -126,12 +168,23 @@ export default function SearchPage() {
         recent={recent}
         users={searchData?.users ?? []}
         posts={searchData?.posts ?? []}
-        onSelectRecent={(item) =>
-          item.type === "user" ? router.push(`/u/${item.value}`) : setQuery(item.value)
-        }
+        onSelectRecent={(item) => {
+          if (item.type === "user") {
+            router.push(`/u/${item.value}`);
+          } else {
+            setQuery(item.value);
+            setDebouncedQuery(item.value);
+            saveRecent(item);
+          }
+        }}
         onRemoveRecent={removeRecent}
         onSaveUserRecent={(username) => saveRecent({ type: "user", value: username })}
+        onSaveKeywordRecent={() => saveRecent({ type: "keyword", value: query.trim() })}
       />
     </AppShell>
   );
+}
+
+export default function SearchPage() {
+  return <Suspense><SearchInner /></Suspense>;
 }

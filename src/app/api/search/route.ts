@@ -8,11 +8,11 @@ export async function GET(req: Request) {
   try {
     const viewer = await requireSessionUser();
     const { searchParams } = new URL(req.url);
-    const raw = (searchParams.get("q") ?? "").trim();
+    const raw = (searchParams.get("q") ?? "").trim().slice(0, 100);
+    const filter = searchParams.get("filter") === "recent" ? "recent" : "top";
     if (!raw) {
       return jsonOk({ users: [], posts: [] });
     }
-
     const isUsernameOnly = raw.startsWith("@");
     const term = isUsernameOnly ? raw.slice(1).trim() : raw;
     if (!term) {
@@ -48,6 +48,11 @@ export async function GET(req: Request) {
       },
     });
 
+    const orderBy =
+      filter === "top"
+        ? [{ likes: { _count: "desc" as const } }, { createdAt: "desc" as const }]
+        : [{ createdAt: "desc" as const }];
+
     const posts = isUsernameOnly
       ? await prisma.post.findMany({
           where: {
@@ -56,7 +61,7 @@ export async function GET(req: Request) {
               username: { contains: term, mode: "insensitive" },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy,
           take: 30,
           include: postIncludeForUser(viewer.id),
         })
@@ -68,11 +73,10 @@ export async function GET(req: Request) {
               { author: { username: { contains: term, mode: "insensitive" } } },
             ],
           },
-          orderBy: { createdAt: "desc" },
+          orderBy,
           take: 30,
           include: postIncludeForUser(viewer.id),
         });
-
     return jsonOk({
       users: users.map((u) => ({
         id: u.id,

@@ -20,8 +20,8 @@ interface SearchResultsProps {
   onSelectRecent: (entry: RecentEntry) => void;
   onRemoveRecent: (entry: RecentEntry) => void;
   onSaveUserRecent: (username: string) => void;
+  onSaveKeywordRecent: () => void;
 }
-
 export function SearchResults({
   hasQuery,
   loading,
@@ -31,6 +31,7 @@ export function SearchResults({
   onSelectRecent,
   onRemoveRecent,
   onSaveUserRecent,
+  onSaveKeywordRecent,
 }: SearchResultsProps) {
   const { t } = useAppPreferences();
 
@@ -135,15 +136,15 @@ export function SearchResults({
           {t("searchPostsHeading")} ({posts.length})
         </div>
       )}
-
       {posts.map((p) => (
-        <PostCard
-          key={p.id}
-          post={p}
-          currentUserId=""
-          onToggleLike={() => {}}
-          onOpenMore={() => {}}
-        />
+        <div key={p.id} onClick={onSaveKeywordRecent}>
+          <PostCard
+            post={p}
+            currentUserId=""
+            onToggleLike={() => {}}
+            onOpenMore={() => {}}
+          />
+        </div>
       ))}
     </div>
   );
