@@ -1,15 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, X } from "@phosphor-icons/react";
+import { useRef } from "react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { AppShell } from "@/components/app-shell";
-import { ConfirmModal } from "@/components/confirm-modal";
 import { MoreSheet } from "@/components/more-sheet";
 import { PostCard } from "@/components/post-card";
 import { CommentThread } from "@/components/post-detail/comment-thread";
 import { useAppPreferences } from "@/components/providers";
-import { ReportModal } from "@/components/report-modal";
 import { usePostDetailActions } from "@/hooks/use-post-detail-actions";
+
+const ConfirmModal = dynamic(() => import("@/components/confirm-modal").then((m) => m.ConfirmModal), { ssr: false });
+const ReportModal = dynamic(() => import("@/components/report-modal").then((m) => m.ReportModal), { ssr: false });
 import type { CommentDTO, PostDTO } from "@/types/domain";
 
 interface PostDetailClientProps {
@@ -25,11 +28,12 @@ export function PostDetailClient({
 }: PostDetailClientProps) {
   const router = useRouter();
   const { t } = useAppPreferences();
+  const commentInputRef = useRef<HTMLInputElement | null>(null);
   const {
-    post, comments, commentText, setCommentText, replyTarget, setReplyTarget,
+    post, comments, commentText, setCommentText, replyTarget, setReplyTarget, startReply,
     submitting, sheetTarget, setSheetTarget, deleteTarget, setDeleteTarget,
     reportTarget, setReportTarget, actionLoading,
-    handleToggleLike, handleSubmitComment, confirmDelete, submitReport,
+    handleToggleLike, handleToggleCommentLike, handleSubmitComment, confirmDelete, submitReport,
   } = usePostDetailActions(initialPost, initialComments);
 
   const isPostOwner = post.author.id === currentUser.id;
@@ -77,8 +81,7 @@ export function PostDetailClient({
       />
 
       <div style={{ padding: "12px 16px", fontSize: 14, fontWeight: 600, borderBottom: "1px solid var(--border)" }}>
-        {t("replies")} ·{" "}
-        <span style={{ color: "var(--muted)", fontWeight: 400 }}>{t("tier2Hint")}</span>
+        {t("replies")}
       </div>
 
       <CommentThread
@@ -86,36 +89,25 @@ export function PostDetailClient({
         comments={comments}
         currentUserId={currentUser.id}
         isPostOwner={isPostOwner}
-        onReply={setReplyTarget}
+        onReply={(target) => {
+          startReply(target);
+          commentInputRef.current?.focus();
+        }}
+        onToggleLike={handleToggleCommentLike}
         onOpenMore={setSheetTarget}
       />
 
       <form className="comment-composer-bar" onSubmit={handleSubmitComment}>
-        {replyTarget && (
-          <button
-            type="button"
-            onClick={() => setReplyTarget(null)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 12,
-              padding: "4px 8px",
-              borderRadius: 999,
-              background: "var(--surface-alt)",
-              color: "var(--muted)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span>@{replyTarget.username}</span>
-            <X size={12} />
-          </button>
-        )}
         <input
+          ref={commentInputRef}
           className="comment-input"
           value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          placeholder={replyTarget ? `${t("replyingTo")} @${replyTarget.username}...` : t("replyPlaceholder")}
+          onChange={(e) => {
+            const val = e.target.value;
+            setCommentText(val);
+            if (!val && replyTarget) setReplyTarget(null);
+          }}
+          placeholder={t("replyPlaceholder")}
           required
         />
         <button className="btn-post-sm" type="submit" disabled={submitting}>

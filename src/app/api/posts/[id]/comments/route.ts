@@ -14,7 +14,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireSessionUser();
+    const viewer = await requireSessionUser();
     const { id } = await context.params;
     const postId = parsePostId(id);
     if (!postId) return jsonError("Invalid post ID", 400);
@@ -26,6 +26,8 @@ export async function GET(
         author: {
           select: { id: true, username: true, name: true, image: true, role: true },
         },
+        _count: { select: { likes: true } },
+        likes: { where: { userId: viewer.id }, select: { userId: true } },
         replies: {
           where: { author: { banned: false } },
           orderBy: { createdAt: "asc" },
@@ -33,6 +35,8 @@ export async function GET(
             author: {
               select: { id: true, username: true, name: true, image: true, role: true },
             },
+            _count: { select: { likes: true } },
+            likes: { where: { userId: viewer.id }, select: { userId: true } },
           },
         },
       },
@@ -43,6 +47,8 @@ export async function GET(
       postId: c.postId,
       content: c.content,
       createdAt: c.createdAt.toISOString(),
+      likesCount: c._count.likes,
+      likedByMe: c.likes.length > 0,
       author: {
         id: c.author.id,
         username: c.author.username,
@@ -56,6 +62,8 @@ export async function GET(
         parentId: c.id,
         content: r.content,
         createdAt: r.createdAt.toISOString(),
+        likesCount: r._count.likes,
+        likedByMe: r.likes.length > 0,
         author: {
           id: r.author.id,
           username: r.author.username,
@@ -92,14 +100,14 @@ export async function POST(
     if (!body) return jsonError("Invalid JSON body", 400);
 
     const content = typeof body.content === "string" ? body.content.trim() : "";
-    if (!content) return jsonError("Comment content is required", 400);
+    if (!content) return jsonError("Comment content is required", 400, "errCommentEmpty");
     if (content.length > MAX_COMMENT_LENGTH) {
-      return jsonError(`Comment exceeds ${MAX_COMMENT_LENGTH} characters`, 400);
+      return jsonError(`Comment exceeds ${MAX_COMMENT_LENGTH} characters`, 400, "errCommentTooLong");
     }
 
     let parentId: number | null = null;
     if (body.parentId !== undefined && body.parentId !== null) {
-      if (typeof body.parentId !== "number" || !Number.isInteger(body.parentId)) {
+      if (typeof body.parentId !== "number" || !Number.isInteger(body.parentId) || body.parentId <= 0) {
         return jsonError("Invalid parentId", 400);
       }
       const parent = await prisma.comment.findUnique({
@@ -136,6 +144,8 @@ export async function POST(
         parentId: created.parentId,
         content: created.content,
         createdAt: created.createdAt.toISOString(),
+        likesCount: 0,
+        likedByMe: false,
         author: {
           id: created.author.id,
           username: created.author.username,

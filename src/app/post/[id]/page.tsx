@@ -30,6 +30,8 @@ export default async function PostDetailPage({
       author: {
         select: { id: true, username: true, name: true, image: true, role: true },
       },
+      _count: { select: { likes: true } },
+      likes: { where: { userId: viewer.id }, select: { userId: true } },
       replies: {
         where: { author: { banned: false } },
         orderBy: { createdAt: "asc" },
@@ -37,6 +39,8 @@ export default async function PostDetailPage({
           author: {
             select: { id: true, username: true, name: true, image: true, role: true },
           },
+          _count: { select: { likes: true } },
+          likes: { where: { userId: viewer.id }, select: { userId: true } },
         },
       },
     },
@@ -47,6 +51,8 @@ export default async function PostDetailPage({
     postId: c.postId,
     content: c.content,
     createdAt: c.createdAt.toISOString(),
+    likesCount: c._count.likes,
+    likedByMe: c.likes.length > 0,
     author: {
       id: c.author.id,
       username: c.author.username,
@@ -60,6 +66,8 @@ export default async function PostDetailPage({
       parentId: c.id,
       content: r.content,
       createdAt: r.createdAt.toISOString(),
+      likesCount: r._count.likes,
+      likedByMe: r.likes.length > 0,
       author: {
         id: r.author.id,
         username: r.author.username,

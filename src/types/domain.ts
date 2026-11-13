@@ -16,6 +16,8 @@ export interface ReplyDTO {
   parentId: number;
   content: string;
   createdAt: string;
+  likesCount: number;
+  likedByMe: boolean;
   author: Pick<UserSummaryDTO, "id" | "username" | "name" | "image" | "role">;
 }
 
@@ -24,6 +26,8 @@ export interface CommentDTO {
   postId: string;
   content: string;
   createdAt: string;
+  likesCount: number;
+  likedByMe: boolean;
   author: Pick<UserSummaryDTO, "id" | "username" | "name" | "image" | "role">;
   replies: ReplyDTO[];
 }

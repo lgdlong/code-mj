@@ -532,6 +532,7 @@ button {
 
 .comment-input {
   flex: 1;
+  min-width: 0;
   min-height: 40px;
   padding: 0 14px;
   border-radius: 999px;
@@ -548,6 +549,7 @@ button {
 }
 
 .btn-post-sm {
+  flex-shrink: 0;
   min-height: 36px;
   padding: 0 14px;
   border-radius: 999px;

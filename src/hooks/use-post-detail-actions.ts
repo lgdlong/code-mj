@@ -21,6 +21,12 @@ export function usePostDetailActions(initialPost: PostDTO, initialComments: Comm
   const [reportTarget, setReportTarget] = useState<MoreSheetTarget | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  function startReply(target: { id: number; username: string }) {
+    setReplyTarget(target);
+    const prefix = `@${target.username} `;
+    setCommentText((prev) => (prev.startsWith(prefix) ? prev : `${prefix}${prev.trimStart()}`));
+  }
+
   async function handleToggleLike() {
     const toggle = (p: PostDTO) => ({
       ...p,
@@ -40,6 +46,38 @@ export function usePostDetailActions(initialPost: PostDTO, initialComments: Comm
     }
   }
 
+  async function handleToggleCommentLike(commentId: number) {
+    const toggle = (list: CommentDTO[]): CommentDTO[] =>
+      list.map((c) => ({
+        ...(c.id === commentId
+          ? {
+              ...c,
+              likedByMe: !c.likedByMe,
+              likesCount: c.likesCount + (c.likedByMe ? -1 : 1),
+            }
+          : c),
+        replies: c.replies.map((r) =>
+          r.id === commentId
+            ? {
+                ...r,
+                likedByMe: !r.likedByMe,
+                likesCount: r.likesCount + (r.likedByMe ? -1 : 1),
+              }
+            : r
+        ),
+      }));
+    setComments(toggle);
+    try {
+      const res = await fetch(`/api/comments/${commentId}/like`, { method: "POST" });
+      if (!res.ok) {
+        setComments(toggle);
+        showToast(await readApiError(res, lang, "errLike"), "error");
+      }
+    } catch {
+      setComments(toggle);
+      showToast(t("errNetwork"), "error");
+    }
+  }
   async function handleSubmitComment(e: React.FormEvent) {
     e.preventDefault();
     const content = commentText.trim();
@@ -120,7 +158,10 @@ export function usePostDetailActions(initialPost: PostDTO, initialComments: Comm
           reason,
         }),
       });
-      if (!res.ok) return showToast(await readApiError(res, lang, "errReport"), "error");
+      if (!res.ok) {
+        showToast(await readApiError(res, lang, "errReport"), "error");
+        return;
+      }
       setReportTarget(null);
       showToast(t("reportedToast"));
     } catch {
@@ -131,9 +172,9 @@ export function usePostDetailActions(initialPost: PostDTO, initialComments: Comm
   }
 
   return {
-    post, comments, commentText, setCommentText, replyTarget, setReplyTarget,
+    post, comments, commentText, setCommentText, replyTarget, setReplyTarget, startReply,
     submitting, sheetTarget, setSheetTarget, deleteTarget, setDeleteTarget,
     reportTarget, setReportTarget, actionLoading,
-    handleToggleLike, handleSubmitComment, confirmDelete, submitReport,
+    handleToggleLike, handleToggleCommentLike, handleSubmitComment, confirmDelete, submitReport,
   };
 }

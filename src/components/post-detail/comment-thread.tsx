@@ -1,11 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, Heart } from "@phosphor-icons/react";
 import type { MoreSheetTarget } from "@/components/more-sheet";
 import { UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
 import type { CommentDTO } from "@/types/domain";
+function renderMentions(text: string) {
+  const parts = text.split(/(@[a-zA-Z0-9_]{3,24})/g);
+  return parts.map((part, i) => {
+    if (/^@[a-zA-Z0-9_]{3,24}$/.test(part)) {
+      const username = part.slice(1).toLowerCase();
+      return (
+        <Link
+          key={i}
+          href={`/u/${username}`}
+          style={{ color: "#3897f0", fontWeight: 500 }}
+        >
+          {part}
+        </Link>
+      );
+    }
+    return part;
+  });
+}
 
 interface CommentThreadProps {
   postId: string;
@@ -13,6 +31,7 @@ interface CommentThreadProps {
   currentUserId: string;
   isPostOwner: boolean;
   onReply: (target: { id: number; username: string }) => void;
+  onToggleLike: (commentId: number) => void;
   onOpenMore: (target: MoreSheetTarget) => void;
 }
 
@@ -22,6 +41,7 @@ export function CommentThread({
   currentUserId,
   isPostOwner,
   onReply,
+  onToggleLike,
   onOpenMore,
 }: CommentThreadProps) {
   const { t } = useAppPreferences();
@@ -75,20 +95,36 @@ export function CommentThread({
                   </button>
                 </div>
 
-                <div className="post-content">{c.content}</div>
+                <div className="post-content">{renderMentions(c.content)}</div>
 
-                <button
-                  type="button"
-                  onClick={() => onReply({ id: c.id, username: c.author.username })}
-                  style={{
-                    marginTop: 6,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--muted)",
-                  }}
-                >
-                  {t("replyAction")}
-                </button>
+                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 14 }}>
+                  <button
+                    type="button"
+                    onClick={() => onToggleLike(c.id)}
+                    aria-label="Like"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 13,
+                      color: c.likedByMe ? "var(--red)" : "var(--muted)",
+                    }}
+                  >
+                    <Heart size={16} weight={c.likedByMe ? "fill" : "regular"} />
+                    {c.likesCount > 0 && <span>{c.likesCount}</span>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReply({ id: c.id, username: c.author.username })}
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {t("replyAction")}
+                  </button>
+                </div>
 
                 {c.replies.length > 0 && (
                   <div
@@ -126,7 +162,35 @@ export function CommentThread({
                                 <DotsThree size={19} weight="bold" />
                               </button>
                             </div>
-                            <div className="post-content">{r.content}</div>
+                            <div className="post-content">{renderMentions(r.content)}</div>
+                            <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 14 }}>
+                              <button
+                                type="button"
+                                onClick={() => onToggleLike(r.id)}
+                                aria-label="Like"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  fontSize: 13,
+                                  color: r.likedByMe ? "var(--red)" : "var(--muted)",
+                                }}
+                              >
+                                <Heart size={15} weight={r.likedByMe ? "fill" : "regular"} />
+                                {r.likesCount > 0 && <span>{r.likesCount}</span>}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onReply({ id: c.id, username: r.author.username })}
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: "var(--muted)",
+                                }}
+                              >
+                                {t("replyAction")}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );

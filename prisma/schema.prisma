@@ -24,12 +24,24 @@ model User {
   accounts  Account[]
   posts     Post[]
   comments  Comment[]
-  likes     Like[]
-  followers Follow[]  @relation("Following")
-  following Follow[]  @relation("Follower")
-  reports   Report[]  @relation("Reporter")
+  likes         Like[]
+  commentLikes  CommentLike[]
+  followers     Follow[]      @relation("Following")
+  following     Follow[]      @relation("Follower")
+  reports   Report[]     @relation("Reporter")
+  setting   UserSetting?
 
   @@map("user")
+}
+
+model UserSetting {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme     String   @default("dark")
+  lang      String   @default("vi")
+  updatedAt DateTime @updatedAt
+
+  @@map("user_setting")
 }
 
 model Session {
@@ -106,12 +118,23 @@ model Comment {
   replies   Comment[] @relation("CommentReplies")
   content   String
   createdAt DateTime  @default(now())
-
+  likes   CommentLike[]
   reports Report[]
 
   @@index([postId])
   @@index([parentId])
   @@map("comment")
+}
+
+model CommentLike {
+  userId    String
+  commentId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, commentId])
+  @@map("comment_like")
 }
 
 model Like {
