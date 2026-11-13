@@ -9,6 +9,7 @@ import { MoreSheet, type MoreSheetTarget } from "@/components/more-sheet";
 import { PostCard, UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
 import { ReportModal } from "@/components/report-modal";
+import { useFeedMutations } from "@/hooks/use-feed-mutations";
 import { readApiError } from "@/lib/client-error";
 import type { PostDTO } from "@/types/domain";
 
@@ -39,6 +40,7 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
   const [deleteTarget, setDeleteTarget] = useState<MoreSheetTarget | null>(null);
   const [reportTarget, setReportTarget] = useState<MoreSheetTarget | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const { toggleLike, toggleFollow } = useFeedMutations();
 
   const { data: posts = [], isLoading, error: feedError } = useQuery({
     queryKey: ["feed"],
@@ -46,65 +48,11 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
     initialData: initialPosts,
   });
 
-  async function handleToggleLike(postId: string) {
-    const toggle = (list: PostDTO[] | undefined) =>
-      list?.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              likedByMe: !p.likedByMe,
-              likesCount: p.likesCount + (p.likedByMe ? -1 : 1),
-            }
-          : p
-      );
-
-    queryClient.setQueryData<PostDTO[]>(["feed"], toggle);
-    try {
-      const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
-      if (!res.ok) {
-        queryClient.setQueryData<PostDTO[]>(["feed"], toggle);
-        showToast(await readApiError(res, lang, "errLike"), "error");
-      } else {
-        void queryClient.invalidateQueries({ queryKey: ["feed"] });
-      }
-    } catch {
-      queryClient.setQueryData<PostDTO[]>(["feed"], toggle);
-      showToast(t("errNetwork"), "error");
-    }
-  }
-
-  async function handleToggleFollow(username: string) {
-    const toggle = (list: PostDTO[] | undefined) =>
-      list?.map((p) =>
-        p.author.username === username
-          ? { ...p, author: { ...p.author, isFollowing: !p.author.isFollowing } }
-          : p
-      );
-
-    queryClient.setQueryData<PostDTO[]>(["feed"], toggle);
-    try {
-      const res = await fetch(`/api/users/${encodeURIComponent(username)}/follow`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        queryClient.setQueryData<PostDTO[]>(["feed"], toggle);
-        showToast(await readApiError(res, lang, "errFollow"), "error");
-      } else {
-        void queryClient.invalidateQueries({ queryKey: ["feed"] });
-      }
-    } catch {
-      queryClient.setQueryData<PostDTO[]>(["feed"], toggle);
-      showToast(t("errNetwork"), "error");
-    }
-  }
-
   async function confirmDelete() {
     if (!deleteTarget || actionLoading) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/posts/${deleteTarget.postId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/posts/${deleteTarget.postId}`, { method: "DELETE" });
       if (!res.ok) {
         showToast(await readApiError(res, lang, "errDeletePost"), "error");
         return;
@@ -166,9 +114,7 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
             {currentUser.username}
           </div>
-          <div style={{ color: "var(--muted)", fontSize: 15 }}>
-            {t("whatsNew")}
-          </div>
+          <div style={{ color: "var(--muted)", fontSize: 15 }}>{t("whatsNew")}</div>
         </div>
       </div>
 
@@ -177,18 +123,9 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
           {t("errFeedLoad")}
         </div>
       ) : isLoading ? (
-        <div style={{ padding: 36, textAlign: "center", color: "var(--muted)" }}>
-          ...
-        </div>
+        <div style={{ padding: 36, textAlign: "center", color: "var(--muted)" }}>...</div>
       ) : posts.length === 0 ? (
-        <div
-          style={{
-            padding: "48px 20px",
-            textAlign: "center",
-            color: "var(--muted)",
-            fontSize: 14,
-          }}
-        >
+        <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
           {t("emptyPosts")}
         </div>
       ) : (
@@ -197,8 +134,8 @@ export function FeedClient({ currentUser, initialPosts }: FeedClientProps) {
             key={post.id}
             post={post}
             currentUserId={currentUser.id}
-            onToggleLike={handleToggleLike}
-            onToggleFollow={handleToggleFollow}
+            onToggleLike={toggleLike}
+            onToggleFollow={toggleFollow}
             onOpenMore={(p) =>
               setSheetTarget({
                 kind: "post",
