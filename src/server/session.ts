@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { cache } from "react";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/prisma";
 
@@ -13,7 +14,7 @@ export interface AuthenticatedUser {
   banned: boolean;
 }
 
-export async function getServerUser(): Promise<AuthenticatedUser | null> {
+export const getServerUser = cache(async (): Promise<AuthenticatedUser | null> => {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) return null;
 
@@ -37,7 +38,7 @@ export async function getServerUser(): Promise<AuthenticatedUser | null> {
     ...dbUser,
     role: dbUser.role === "admin" ? "admin" : "user",
   };
-}
+});
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {

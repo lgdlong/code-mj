@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ProfileClient } from "@/components/profile-client";
+import { FEED_PAGE_SIZE } from "@/lib/constants";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { getServerUser } from "@/server/session";
@@ -14,38 +15,39 @@ export default async function ProfilePage({
   const { username } = await params;
   const decoded = decodeURIComponent(username);
 
-  const user = await prisma.user.findUnique({
-    where: { username: decoded },
-    select: {
-      id: true,
-      username: true,
-      name: true,
-      image: true,
-      bio: true,
-      role: true,
-      banned: true,
-      _count: {
-        select: {
-          followers: true,
-          following: true,
-          posts: true,
+  const [user, posts] = await Promise.all([
+    prisma.user.findUnique({
+      where: { username: decoded },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        image: true,
+        bio: true,
+        role: true,
+        banned: true,
+        _count: {
+          select: {
+            followers: true,
+            following: true,
+            posts: true,
+          },
+        },
+        followers: {
+          where: { followerId: viewer.id },
+          select: { followerId: true },
         },
       },
-      followers: {
-        where: { followerId: viewer.id },
-        select: { followerId: true },
-      },
-    },
-  });
+    }),
+    prisma.post.findMany({
+      where: { author: { username: decoded, banned: false } },
+      orderBy: { createdAt: "desc" },
+      take: FEED_PAGE_SIZE,
+      include: postIncludeForUser(viewer.id),
+    }),
+  ]);
 
   if (!user || user.banned) notFound();
-
-  const posts = await prisma.post.findMany({
-    where: { authorId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: postIncludeForUser(viewer.id),
-  });
-
   return (
     <ProfileClient
       currentUser={{ id: viewer.id, username: viewer.username }}
