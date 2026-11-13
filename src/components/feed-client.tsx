@@ -1,15 +1,17 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { ConfirmModal } from "@/components/confirm-modal";
 import { MoreSheet, type MoreSheetTarget } from "@/components/more-sheet";
 import { PostCard, UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
-import { ReportModal } from "@/components/report-modal";
 import { useFeedMutations } from "@/hooks/use-feed-mutations";
+
+const ConfirmModal = dynamic(() => import("@/components/confirm-modal").then((m) => m.ConfirmModal), { ssr: false });
+const ReportModal = dynamic(() => import("@/components/report-modal").then((m) => m.ReportModal), { ssr: false });
 import { readApiError } from "@/lib/client-error";
 import type { PostDTO } from "@/types/domain";
 

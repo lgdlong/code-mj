@@ -1,15 +1,17 @@
 "use client";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { ConfirmModal } from "@/components/confirm-modal";
 import { MoreSheet, type MoreSheetTarget } from "@/components/more-sheet";
 import { PostCard } from "@/components/post-card";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileTopBar } from "@/components/profile/profile-top-bar";
 import { useAppPreferences } from "@/components/providers";
-import { ReportModal } from "@/components/report-modal";
+
+const ConfirmModal = dynamic(() => import("@/components/confirm-modal").then((m) => m.ConfirmModal), { ssr: false });
+const ReportModal = dynamic(() => import("@/components/report-modal").then((m) => m.ReportModal), { ssr: false });
 import { readApiError } from "@/lib/client-error";
 import type { PostDTO, ProfileDTO } from "@/types/domain";
 interface ProfileClientProps {

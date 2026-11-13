@@ -1,15 +1,19 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Article, ChartBar, ChatCircle, Desktop, Flag, Globe, MagnifyingGlass, Moon, Sun, Users } from "@phosphor-icons/react";
-import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
-import { AdminCommentsTab, AdminPostsTab } from "@/components/admin/admin-content-tabs";
-import { AdminReportsTab, AdminUsersTab } from "@/components/admin/admin-moderation-tabs";
 import { AdminOverviewTab } from "@/components/admin/admin-overview-tab";
 import type { AdminCommentRow, AdminPostRow, AdminTab, AdminUserRow, PendingAdminConfirm } from "@/components/admin/admin-types";
 import { useAppPreferences } from "@/components/providers";
+
+const AdminConfirmDialog = dynamic(() => import("@/components/admin/admin-confirm-dialog").then((m) => m.AdminConfirmDialog), { ssr: false });
+const AdminPostsTab = dynamic(() => import("@/components/admin/admin-content-tabs").then((m) => m.AdminPostsTab), { ssr: false });
+const AdminCommentsTab = dynamic(() => import("@/components/admin/admin-content-tabs").then((m) => m.AdminCommentsTab), { ssr: false });
+const AdminReportsTab = dynamic(() => import("@/components/admin/admin-moderation-tabs").then((m) => m.AdminReportsTab), { ssr: false });
+const AdminUsersTab = dynamic(() => import("@/components/admin/admin-moderation-tabs").then((m) => m.AdminUsersTab), { ssr: false });
 import { readApiError } from "@/lib/client-error";
 import type { AdminStatsDTO, ReportDTO } from "@/types/domain";
 
