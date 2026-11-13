@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { AppShell } from "@/components/app-shell";
 import { MoreSheet } from "@/components/more-sheet";
@@ -19,22 +19,41 @@ interface PostDetailClientProps {
   currentUser: { id: string; username: string };
   initialPost: PostDTO;
   initialComments: CommentDTO[];
+  initialNextCursor: number | null;
 }
 
 export function PostDetailClient({
   currentUser,
   initialPost,
   initialComments,
+  initialNextCursor,
 }: PostDetailClientProps) {
   const router = useRouter();
   const { t } = useAppPreferences();
   const commentInputRef = useRef<HTMLInputElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const {
     post, comments, commentText, setCommentText, replyTarget, setReplyTarget, startReply,
-    submitting, sheetTarget, setSheetTarget, deleteTarget, setDeleteTarget,
+    submitting, nextCursor, loadingMore, loadMoreComments,
+    sheetTarget, setSheetTarget, deleteTarget, setDeleteTarget,
     reportTarget, setReportTarget, actionLoading,
     handleToggleLike, handleToggleCommentLike, handleSubmitComment, confirmDelete, submitReport,
-  } = usePostDetailActions(initialPost, initialComments);
+  } = usePostDetailActions(initialPost, initialComments, initialNextCursor);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || nextCursor === null || loadingMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMoreComments();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [nextCursor, loadingMore, loadMoreComments]);
 
   const isPostOwner = post.author.id === currentUser.id;
 
@@ -96,6 +115,15 @@ export function PostDetailClient({
         onToggleLike={handleToggleCommentLike}
         onOpenMore={setSheetTarget}
       />
+
+      {nextCursor !== null && (
+        <div
+          ref={sentinelRef}
+          style={{ padding: "16px 16px 80px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}
+        >
+          {loadingMore ? "..." : ""}
+        </div>
+      )}
 
       <form className="comment-composer-bar" onSubmit={handleSubmitComment}>
         <input

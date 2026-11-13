@@ -8,11 +8,17 @@ import { readApiError } from "@/lib/client-error";
 import { MAX_COMMENT_LENGTH } from "@/lib/constants";
 import type { CommentDTO, PostDTO, ReplyDTO } from "@/types/domain";
 
-export function usePostDetailActions(initialPost: PostDTO, initialComments: CommentDTO[]) {
+export function usePostDetailActions(
+  initialPost: PostDTO,
+  initialComments: CommentDTO[],
+  initialNextCursor: number | null
+) {
   const router = useRouter();
   const { t, lang, showToast } = useAppPreferences();
   const [post, setPost] = useState<PostDTO>(initialPost);
   const [comments, setComments] = useState<CommentDTO[]>(initialComments);
+  const [nextCursor, setNextCursor] = useState<number | null>(initialNextCursor);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [replyTarget, setReplyTarget] = useState<{ id: number; username: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -20,6 +26,25 @@ export function usePostDetailActions(initialPost: PostDTO, initialComments: Comm
   const [deleteTarget, setDeleteTarget] = useState<MoreSheetTarget | null>(null);
   const [reportTarget, setReportTarget] = useState<MoreSheetTarget | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  async function loadMoreComments() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/comments?cursor=${nextCursor}`);
+      if (!res.ok) return;
+      const json = (await res.json()) as { data?: { items: CommentDTO[]; nextCursor: number | null } };
+      if (!json.data) return;
+      const { items, nextCursor: next } = json.data;
+      setComments((prev) => {
+        const seen = new Set(prev.map((c) => c.id));
+        return [...prev, ...items.filter((c) => !seen.has(c.id))];
+      });
+      setNextCursor(next);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   function startReply(target: { id: number; username: string }) {
     setReplyTarget(target);
@@ -173,7 +198,8 @@ export function usePostDetailActions(initialPost: PostDTO, initialComments: Comm
 
   return {
     post, comments, commentText, setCommentText, replyTarget, setReplyTarget, startReply,
-    submitting, sheetTarget, setSheetTarget, deleteTarget, setDeleteTarget,
+    submitting, nextCursor, loadingMore, loadMoreComments,
+    sheetTarget, setSheetTarget, deleteTarget, setDeleteTarget,
     reportTarget, setReportTarget, actionLoading,
     handleToggleLike, handleToggleCommentLike, handleSubmitComment, confirmDelete, submitReport,
   };

@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { PostDetailClient } from "@/components/post-detail-client";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 import { parsePostId } from "@/server/http";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
@@ -23,9 +24,10 @@ export default async function PostDetailPage({
   });
   if (!post) notFound();
 
-  const commentRows = await prisma.comment.findMany({
+  const rows = await prisma.comment.findMany({
     where: { postId, parentId: null, author: { banned: false } },
     orderBy: { createdAt: "asc" },
+    take: COMMENT_PAGE_SIZE + 1,
     include: {
       author: {
         select: { id: true, username: true, name: true, image: true, role: true },
@@ -45,6 +47,9 @@ export default async function PostDetailPage({
       },
     },
   });
+
+  const hasMore = rows.length > COMMENT_PAGE_SIZE;
+  const commentRows = hasMore ? rows.slice(0, COMMENT_PAGE_SIZE) : rows;
 
   const initialComments: CommentDTO[] = commentRows.map((c) => ({
     id: c.id,
@@ -78,11 +83,14 @@ export default async function PostDetailPage({
     })),
   }));
 
+  const initialNextCursor = hasMore ? (initialComments[initialComments.length - 1]?.id ?? null) : null;
+
   return (
     <PostDetailClient
       currentUser={{ id: viewer.id, username: viewer.username }}
       initialPost={mapPostToDTO(post)}
       initialComments={initialComments}
+      initialNextCursor={initialNextCursor}
     />
   );
 }
