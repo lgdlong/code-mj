@@ -1,0 +1,22 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Every 3 days at 04:00 UTC (backup for Vercel Cron)
+    - cron: "0 4 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping deployed /api/health
+        env:
+          APP_HEALTH_URL: ${{ vars.APP_HEALTH_URL }}
+        run: |
+          if [ -z "$APP_HEALTH_URL" ]; then
+            echo "APP_HEALTH_URL repo variable not set; skipping (Vercel Cron handles /api/health once deployed)."
+            exit 0
+          fi
+          curl -fsS --retry 2 "$APP_HEALTH_URL"
+          echo ""
