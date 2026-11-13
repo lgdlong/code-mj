@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Cortis Fandom — Threads Mobile-First Mock UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Action Sheet -->
+  <div id="moreSheet" class="sheet-overlay" onclick="closeMoreSheet()">
+    <div class="sheet-panel" onclick="event.stopPropagation()">
+      <button id="sheetEditBtn" class="sheet-item" onclick="editTargetPost()">
+        <span id="sheetEditLabel">Chỉnh sửa bài viết</span>
+        <i class="ph ph-pencil-simple"></i>
+      </button>
+      <button id="sheetDeleteBtn" class="sheet-item danger" onclick="deleteTargetPost()">
+        <span id="sheetDeleteLabel">Xóa bài viết</span>
+        <i class="ph ph-trash"></i>
+      </button>
+      <button id="sheetReportBtn" class="sheet-item danger" onclick="reportTargetPost()">
+        <span id="sheetReportLabel">Báo cáo bài viết</span>
+        <i class="ph ph-flag"></i>
+      </button>
+      <button class="sheet-item" onclick="closeMoreSheet()" style="color:var(--muted); justify-content:center; margin-top:4px;">
+        <span id="sheetCloseLabel">Đóng</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="./app.js"></script>
+</body>
+</html>

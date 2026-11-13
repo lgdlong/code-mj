@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cortis Fandom — Cam / Đỏ / Vàng Palette & Components</title>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+  <style>
+    :root {
+      /* Light Mode (Default — Threads) */
+      --bg: #FFFFFF;
+      --surface: #FFFFFF;
+      --surface-alt: #F5F5F5;
+      --ink: #101010;
+      --muted: #777777;
+      --border: #E5E5E5;
+
+      /* User-approved Red / Orange / Yellow triad */
+      --red: #FE0000;
+      --red-soft: #FFEBEB;
+      --yellow: #FDC101;
+      --yellow-ink: #8A5A00;
+      --yellow-soft: #FFF8E1;
+      --orange: #FF7300;
+      --orange-hover: #E06500;
+      --orange-soft: #FFF2E6;
+    }
+
+    [data-theme="dark"] {
+      /* Dark Mode (Threads) */
+      --bg: #101010;
+      --surface: #181818;
+      --surface-alt: #222222;
+      --ink: #F3F5F7;
+      --muted: #777777;
+      --border: #2A2A2A;
+
+      --red: #FE0000;
+      --red-soft: #2D0D0D;
+      --yellow: #FDC101;
+      --yellow-ink: #FDC101;
+      --yellow-soft: #2A2105;
+      --orange: #FF7300;
+      --orange-hover: #FF8826;
+      --orange-soft: #2B1808;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+      padding: 32px 16px 64px;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 28px;
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* Section Card */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* Color Mixing Bar */
+    .mix-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1.3fr;
+      gap: 12px;
+      align-items: center;
+    }
+    @media (max-width: 720px) {
+      .mix-row { grid-template-columns: 1fr; }
+      .mix-op { text-align: center; }
+    }
+    .swatch {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .swatch-color { height: 76px; }
+    .swatch-meta {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+    .swatch-meta strong { display: block; font-size: 14px; }
+    .swatch-meta span { color: var(--muted); font-size: 12px; }
+    .mix-op {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .tints-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .tint-chip {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    /* Layout for Component Demos */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* Buttons & Badges */
+    .stack { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .btn {
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--orange); color: #fff; }
+    .btn-primary:hover { background: var(--orange-hover); }
+    .btn-outline { background: var(--surface); border-color: var(--border); color: var(--ink); }
+    .btn-soft { background: var(--orange-soft); color: var(--orange); border-color: rgba(220,107,34,0.25); }
+    .btn-danger { background: var(--surface); border-color: var(--red); color: var(--red); }
+    .btn-disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-yellow { background: var(--yellow-soft); color: var(--yellow-ink); border: 1px solid rgba(245,184,29,0.45); }
+    .badge-orange { background: var(--orange-soft); color: var(--orange); border: 1px solid rgba(220,107,34,0.3); }
+    .badge-red { background: var(--red-soft); color: var(--red); border: 1px solid rgba(196,30,40,0.3); }
+
+    /* Mobile Phone Frame Preview */
+    .phone {
+      width: 100%;
+      max-width: 390px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .phone-header {
+      padding: 14px 16px 0;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .brand {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--orange);
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin-top: 10px;
+    }
+    .tab {
+      padding: 10px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+    }
+    .tab.active {
+      color: var(--ink);
+      border-bottom-color: var(--orange);
+    }
+
+    /* Composer */
+    .composer {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--yellow), var(--orange));
+      flex-shrink: 0;
+      display: grid; place-items: center;
+      color: #fff; font-weight: 700; font-size: 13px;
+    }
+    .composer input {
+      flex: 1;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 14px;
+      outline: none;
+      background: var(--surface-alt);
+      color: var(--ink);
+    }
+    .composer input:focus {
+      border-color: var(--orange);
+      background: var(--surface);
+    }
+    .btn-sm {
+      min-height: 36px;
+      padding: 0 14px;
+      font-size: 13px;
+    }
+
+    /* Post */
+    .post {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+    .post-col { flex: 1; min-width: 0; }
+    .post-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 14px;
+    }
+    .post-head strong { font-weight: 600; }
+    .post-head span { font-size: 12px; color: var(--muted); }
+    .post-body { font-size: 14.5px; margin-top: 4px; }
+    .post-img {
+      margin-top: 10px;
+      height: 150px;
+      border-radius: 12px;
+      background: linear-gradient(120deg, var(--yellow-soft) 0%, var(--orange-soft) 55%, var(--red-soft) 100%);
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .post-actions {
+      display: flex;
+      gap: 18px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: inherit;
+      font: inherit;
+      padding: 4px 0;
+    }
+    .action-btn.liked { color: var(--red); font-weight: 600; }
+
+    /* Thread reply */
+    .thread-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .thread-line {
+      width: 2px;
+      flex: 1;
+      background: var(--border);
+      margin-top: 6px;
+      border-radius: 2px;
+    }
+    .reply-box {
+      margin-top: 10px;
+      padding-left: 10px;
+      border-left: 2px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .nav-item {
+      height: 52px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .nav-item.active { color: var(--orange); }
+
+    /* Profile + Admin Mini */
+    .profile-card {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .profile-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .avatar-lg {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--red), var(--orange));
+      border: 2px solid var(--orange);
+      color: #fff; display: grid; place-items: center; font-weight: 700;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-box {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--surface-alt);
+    }
+    .stat-box small { color: var(--muted); display: block; font-size: 12px; }
+    .stat-box strong { font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+      <div>
+        <h1>Cortis Fandom — Bảng màu Cam · Đỏ · Vàng (Nền Threads)</h1>
+        <p>Mặc định Nền Sáng Threads (#FFFFFF / #101010) · Nền Tối Threads (#101010 / #181818 / #F3F5F7). Nhấn bằng Đỏ (#FE0000) + Vàng (#FDC101) → Cam (#FF7300).</p>
+      </div>
+      <button id="themeToggle" class="btn btn-outline btn-sm" onclick="toggleTheme()"><i class="ph ph-moon" style="font-size:16px;"></i> Chuyển Nền Tối</button>
+    </header>
+
+    <!-- 1. Color Mixing -->
+    <section class="panel">
+      <div class="panel-title">1. Công thức pha màu (Đỏ + Vàng → Cam chủ đạo)</div>
+      <div class="mix-row">
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--red);"></div>
+          <div class="swatch-meta">
+            <strong>Red · #FE0000</strong>
+            <span>Thả tim (Like) & Cảnh báo / Ban</span>
+          </div>
+        </div>
+        <div class="mix-op">+</div>
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--yellow);"></div>
+          <div class="swatch-meta">
+            <strong>Yellow · #FDC101</strong>
+            <span>Badge 1,000 thành viên & Admin</span>
+          </div>
+        </div>
+        <div class="mix-op">=</div>
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--orange);"></div>
+          <div class="swatch-meta">
+            <strong>Primary Orange · #FF7300</strong>
+            <span>Màu chính: CTA, Tab active, Focus, Nav</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tints-grid">
+        <div class="tint-chip" style="background: var(--bg);"><strong>Canvas (BG)</strong><br><span class="mono" id="hex-bg">#FFFFFF</span></div>
+        <div class="tint-chip" style="background: var(--surface-alt);"><strong>Input / Alt</strong><br><span class="mono" id="hex-alt">#F5F5F5</span></div>
+        <div class="tint-chip" style="background: var(--orange-soft);"><strong>Orange Tint</strong><br><span class="mono">#FFF2E6 / #2B1808</span></div>
+        <div class="tint-chip" style="background: var(--yellow-soft);"><strong>Yellow Tint</strong><br><span class="mono">#FFF8E1 / #2A2105</span></div>
+        <div class="tint-chip" style="background: var(--red-soft);"><strong>Red Tint</strong><br><span class="mono">#FFEBEB / #2D0D0D</span></div>
+        <div class="tint-chip" style="background: var(--ink); color: var(--bg);"><strong>Primary Ink</strong><br><span class="mono" id="hex-ink">#101010</span></div>
+      </div>
+    </section>
+
+    <!-- 2. Basic Components -->
+    <section class="panel">
+      <div class="panel-title">2. Component cơ bản gắn màu</div>
+      <div class="demo-grid">
+        <div>
+          <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">Buttons (min height 44px)</p>
+          <div class="stack">
+            <button class="btn btn-primary">Đăng bài / Follow</button>
+            <button class="btn btn-soft">Đang chọn</button>
+            <button class="btn btn-outline">Hủy / Sửa hồ sơ</button>
+            <button class="btn btn-danger">Ban User</button>
+            <button class="btn btn-disabled" disabled>Disabled</button>
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">Badges & Trạng thái</p>
+          <div class="stack">
+            <span class="badge badge-yellow mono">PRIVATE · 1,000 MAX</span>
+            <span class="badge badge-yellow mono">ADMIN</span>
+            <span class="badge badge-orange">Đang theo dõi</span>
+            <span class="badge badge-red">Đã khóa tài khoản</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Mobile Feed vs Profile/Admin Comparison -->
+    <section class="demo-grid">
+      <!-- Phone 1: Feed -->
+      <div class="phone">
+        <div class="phone-header">
+          <div class="brand">CORTIS <span class="brand-dot"></span></div>
+          <div class="tabs">
+            <div class="tab active">Tất cả</div>
+            <div class="tab">Đang theo dõi</div>
+          </div>
+        </div>
+
+        <div class="composer">
+          <div class="avatar">H</div>
+          <input type="text" placeholder="Chia sẻ với Cortis..." />
+          <button class="btn btn-primary btn-sm">Đăng</button>
+        </div>
+
+        <article class="post">
+          <div class="thread-wrap">
+            <div class="avatar" style="background: var(--ink);">M</div>
+            <div class="thread-line"></div>
+          </div>
+          <div class="post-col">
+            <div class="post-head">
+              <strong>@minji_cortis</strong>
+              <span class="mono">12m</span>
+            </div>
+            <p class="post-body">Hôm nay stage live đỉnh quá mọi người ơi, đoạn điệp khúc nghe nổi da gà luôn.</p>
+            <div class="post-img">Ảnh đính kèm (1 ảnh / bài · WebP)</div>
+            <div class="post-actions">
+              <button class="action-btn liked" onclick="this.classList.toggle('liked'); const i=this.querySelector('i'); i.classList.toggle('ph-fill'); i.classList.toggle('ph');"><i class="ph-fill ph-heart" style="font-size:18px;"></i> <span class="mono">132</span></button>
+              <button class="action-btn"><i class="ph ph-chat-circle" style="font-size:18px;"></i> <span class="mono">14</span></button>
+            </div>
+            <div class="reply-box">
+              <strong style="font-size:13px;">@hana_c</strong> <span class="mono" style="font-size:11px; color:var(--muted);">5m</span>
+              <p style="color:var(--muted);">Chuẩn luôn, fanchant đoạn cuối nghe rõ mồn một!</p>
+            </div>
+          </div>
+        </article>
+
+        <div class="bottom-nav">
+          <div class="nav-item active"><i class="ph-fill ph-house" style="font-size:20px;"></i></div>
+          <div class="nav-item"><i class="ph ph-plus-circle" style="font-size:20px;"></i></div>
+          <div class="nav-item"><i class="ph ph-user" style="font-size:20px;"></i></div>
+          <div class="nav-item"><i class="ph ph-shield" style="font-size:20px;"></i></div>
+        </div>
+      </div>
+
+      <!-- Phone 2: Profile & Admin Preview -->
+      <div class="phone">
+        <div class="profile-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span class="mono" style="font-size:13px; color:var(--muted);">@hana_c</span>
+            <span class="badge badge-yellow mono">842 / 1,000</span>
+          </div>
+          <div class="profile-top">
+            <div>
+              <h2 style="font-size:19px; font-weight:700;">Hana Park</h2>
+              <p style="font-size:13.5px; color:var(--muted); margin-top:2px;">Cortis fan since debut · Sưu tầm fancam</p>
+            </div>
+            <div class="avatar-lg">HP</div>
+          </div>
+          <p style="font-size:13px; color:var(--muted); margin:12px 0;">
+            <strong style="color:var(--ink);">128</strong> người theo dõi · <strong style="color:var(--ink);">45</strong> đang theo dõi
+          </p>
+          <button class="btn btn-primary" style="width:100%;">Theo dõi</button>
+        </div>
+
+        <div style="padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <strong style="font-size:14px;">Moderation (Admin)</strong>
+            <span class="badge badge-yellow mono">ADMIN</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <small>Thành viên</small>
+              <strong class="mono" style="color:var(--orange);">842 / 1,000</strong>
+            </div>
+            <div class="stat-box">
+              <small>Đã khóa</small>
+              <strong class="mono" style="color:var(--red);">3</strong>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="font-size:13px;">
+              <strong>@spam_acc</strong>
+              <div style="color:var(--muted); font-size:12px;">Bán vé chợ đen...</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-outline btn-sm">Xóa</button>
+              <button class="btn btn-danger btn-sm">Ban</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    function toggleTheme() {
+      const root = document.documentElement;
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('themeToggle').innerHTML = isDark ? '<i class="ph ph-moon" style="font-size:16px;"></i> Chuyển Nền Tối' : '<i class="ph ph-sun" style="font-size:16px;"></i> Chuyển Nền Sáng';
+      document.getElementById('hex-bg').textContent = isDark ? '#FFFFFF' : '#101010';
+      document.getElementById('hex-alt').textContent = isDark ? '#F5F5F5' : '#222222';
+      document.getElementById('hex-ink').textContent = isDark ? '#101010' : '#F3F5F7';
+    }
+  </script>
+</body>
+</html>
