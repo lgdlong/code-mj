@@ -10,6 +10,14 @@
 
 ---
 
+## Preview
+
+| Feed | Post & Comments | Profile | Search | Login |
+| :---: | :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/feed.png" width="180" alt="Feed" /> | <img src="docs/screenshots/post-detail.png" width="180" alt="Post Detail" /> | <img src="docs/screenshots/profile.png" width="180" alt="Profile" /> | <img src="docs/screenshots/search.png" width="180" alt="Search" /> | <img src="docs/screenshots/login.png" width="180" alt="Login" /> |
+
+---
+
 ## Features
 
 - **Private Fandom Gate (Max 1,000 Members)**
