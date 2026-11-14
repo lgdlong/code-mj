@@ -9,8 +9,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "marjamesstan private web",
-  description: "Private Cortis fandom web",
+  title: "marjames",
+  description: "marjamesstan private web",
+  openGraph: {
+    title: "marjames",
+    description: "marjamesstan private web",
+  },
+  twitter: {
+    title: "marjames",
+    description: "marjamesstan private web",
+  },
 };
 
 export const viewport: Viewport = {
