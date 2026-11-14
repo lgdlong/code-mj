@@ -2,37 +2,20 @@
 
 import Link from "next/link";
 import { DotsThree, Heart } from "@phosphor-icons/react";
+import { AdminBadge } from "@/components/admin-badge";
+import { MediaGrid } from "@/components/media-grid";
 import type { MoreSheetTarget } from "@/components/more-sheet";
 import { UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
 import type { CommentDTO } from "@/types/domain";
-const MENTION_REGEX = /(@[a-zA-Z0-9_][a-zA-Z0-9_.]{1,22}[a-zA-Z0-9_])/g;
-const MENTION_EXACT = /^@[a-zA-Z0-9_][a-zA-Z0-9_.]{1,22}[a-zA-Z0-9_]$/;
-
-function renderMentions(text: string) {
-  const parts = text.split(MENTION_REGEX);
-  return parts.map((part, i) => {
-    if (MENTION_EXACT.test(part)) {
-      const username = part.slice(1).toLowerCase();
-      return (
-        <Link
-          key={i}
-          href={`/u/${username}`}
-          style={{ color: "#3897f0", fontWeight: 500 }}
-        >
-          {part}
-        </Link>
-      );
-    }
-    return part;
-  });
-}
+import { MentionText } from "@/components/mention-text";
 
 interface CommentThreadProps {
   postId: string;
   comments: CommentDTO[];
   currentUserId: string;
   isPostOwner: boolean;
+  bottomInset: number;
   onReply: (target: { id: number; username: string }) => void;
   onToggleLike: (commentId: number) => void;
   onOpenMore: (target: MoreSheetTarget) => void;
@@ -43,6 +26,7 @@ export function CommentThread({
   comments,
   currentUserId,
   isPostOwner,
+  bottomInset,
   onReply,
   onToggleLike,
   onOpenMore,
@@ -50,7 +34,7 @@ export function CommentThread({
   const { t } = useAppPreferences();
 
   return (
-    <div style={{ paddingBottom: 76 }}>
+    <div style={{ paddingBottom: bottomInset }}>
       {comments.map((c) => {
         const canDeleteC = isPostOwner || c.author.id === currentUserId;
         return (
@@ -80,6 +64,7 @@ export function CommentThread({
                   <Link href={`/u/${c.author.username}`} className="post-username">
                     {c.author.username}
                   </Link>
+                  {c.author.role === "admin" && <AdminBadge />}
                   <button
                     type="button"
                     className="post-more-btn"
@@ -98,7 +83,10 @@ export function CommentThread({
                   </button>
                 </div>
 
-                <div className="post-content">{renderMentions(c.content)}</div>
+                <div className="post-content">
+                  <MentionText text={c.content} mentions={c.mentions} />
+                </div>
+                <MediaGrid urls={c.imageUrls} alt="Comment attachment" />
 
                 <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 14 }}>
                   <button
@@ -148,6 +136,7 @@ export function CommentThread({
                               <Link href={`/u/${r.author.username}`} className="post-username">
                                 {r.author.username}
                               </Link>
+                              {r.author.role === "admin" && <AdminBadge />}
                               <button
                                 type="button"
                                 className="post-more-btn"
@@ -165,7 +154,10 @@ export function CommentThread({
                                 <DotsThree size={19} weight="bold" />
                               </button>
                             </div>
-                            <div className="post-content">{renderMentions(r.content)}</div>
+                            <div className="post-content">
+                              <MentionText text={r.content} mentions={r.mentions} />
+                            </div>
+                            <MediaGrid urls={r.imageUrls} alt="Reply attachment" />
                             <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 14 }}>
                               <button
                                 type="button"

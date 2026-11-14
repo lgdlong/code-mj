@@ -18,19 +18,13 @@ export async function GET(req: Request) {
     const cursorRaw = searchParams.get("cursor");
     const cursor = cursorRaw ? parsePostId(cursorRaw) : null;
 
-    let followingIds: string[] | undefined;
-    if (tab === "following") {
-      const follows = await prisma.follow.findMany({
-        where: { followerId: viewer.id },
-        select: { followingId: true },
-      });
-      followingIds = [viewer.id, ...follows.map((f) => f.followingId)];
-    }
-
     const posts = await prisma.post.findMany({
       where: {
         author: { banned: false },
-        ...(followingIds ? { authorId: { in: followingIds } } : {}),
+        ...(tab === "following" && {
+          // Own posts + posts of people I follow, in one query (no pre-fetch of ids).
+          OR: [{ authorId: viewer.id }, { author: { followers: { some: { followerId: viewer.id } } } }],
+        }),
       },
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: "desc" },

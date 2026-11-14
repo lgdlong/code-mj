@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { AppShell } from "@/components/app-shell";
 import { MoreSheet } from "@/components/more-sheet";
 import { PostCard } from "@/components/post-card";
+import { CommentComposer, type CommentComposerMedia } from "@/components/post-detail/comment-composer";
 import { CommentThread } from "@/components/post-detail/comment-thread";
 import { useAppPreferences } from "@/components/providers";
 import { usePostDetailActions } from "@/hooks/use-post-detail-actions";
@@ -31,6 +32,8 @@ export function PostDetailClient({
   const router = useRouter();
   const { t } = useAppPreferences();
   const commentInputRef = useRef<HTMLInputElement | null>(null);
+  const commentMediaRef = useRef<CommentComposerMedia | null>(null);
+  const [composerHeight, setComposerHeight] = useState(76);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const {
     post, comments, commentText, setCommentText, replyTarget, setReplyTarget, startReply,
@@ -38,7 +41,12 @@ export function PostDetailClient({
     sheetTarget, setSheetTarget, deleteTarget, setDeleteTarget,
     reportTarget, setReportTarget, actionLoading,
     handleToggleLike, handleToggleCommentLike, handleSubmitComment, confirmDelete, submitReport,
-  } = usePostDetailActions(initialPost, initialComments, initialNextCursor);
+  } = usePostDetailActions(
+    initialPost,
+    initialComments,
+    initialNextCursor,
+    commentMediaRef
+  );
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -108,6 +116,7 @@ export function PostDetailClient({
         comments={comments}
         currentUserId={currentUser.id}
         isPostOwner={isPostOwner}
+        bottomInset={composerHeight + 12}
         onReply={(target) => {
           startReply(target);
           commentInputRef.current?.focus();
@@ -125,23 +134,17 @@ export function PostDetailClient({
         </div>
       )}
 
-      <form className="comment-composer-bar" onSubmit={handleSubmitComment}>
-        <input
-          ref={commentInputRef}
-          className="comment-input"
-          value={commentText}
-          onChange={(e) => {
-            const val = e.target.value;
-            setCommentText(val);
-            if (!val && replyTarget) setReplyTarget(null);
-          }}
-          placeholder={t("replyPlaceholder")}
-          required
-        />
-        <button className="btn-post-sm" type="submit" disabled={submitting}>
-          {t("postBtn")}
-        </button>
-      </form>
+      <CommentComposer
+        value={commentText}
+        onValueChange={setCommentText}
+        replyTo={replyTarget?.username ?? null}
+        onCancelReply={() => setReplyTarget(null)}
+        submitting={submitting}
+        onSubmit={handleSubmitComment}
+        inputRef={commentInputRef}
+        mediaRef={commentMediaRef}
+        onHeightChange={setComposerHeight}
+      />
 
       <MoreSheet
         target={sheetTarget}

@@ -48,28 +48,54 @@ export async function GET() {
       }),
     ]);
 
-    // All DAYS_WINDOW days in one round-trip wave; date buckets are independent.
-    const dailyStats: AdminDailyStatDTO[] = await Promise.all(
-      Array.from({ length: DAYS_WINDOW }, async (_, i) => {
-        const start = new Date(now);
-        start.setHours(0, 0, 0, 0);
-        start.setDate(start.getDate() - i);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
+    // 5-day buckets: one findMany per table selecting only createdAt, folded into
+    // day buckets in JS. (groupby-by-timestamp buys nothing over this; raw SQL
+    // date_trunc not worth it at this scale.) Order matches the old shape:
+    // newest day first.
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    dayStart.setDate(dayStart.getDate() - (DAYS_WINDOW - 1));
 
-        const [posts, comments, likes, users] = await Promise.all([
-          prisma.post.count({ where: { createdAt: { gte: start, lt: end } } }),
-          prisma.comment.count({ where: { createdAt: { gte: start, lt: end } } }),
-          prisma.like.count({ where: { createdAt: { gte: start, lt: end } } }),
-          prisma.user.count({ where: { createdAt: { gte: start, lt: end } } }),
-        ]);
+    const bucketLabel = (d: Date) =>
+      `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 
-        const label = `${String(start.getDate()).padStart(2, "0")}/${String(
-          start.getMonth() + 1
-        ).padStart(2, "0")}`;
-        return { date: label, posts, comments, likes, users };
-      })
-    );
+    const [postDays, commentDays, likeDays, userDays] = await Promise.all([
+      prisma.post.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
+      prisma.comment.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
+      prisma.like.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
+      prisma.user.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
+    ]);
+
+    const tables = {
+      posts: new Map<string, number>(),
+      comments: new Map<string, number>(),
+      likes: new Map<string, number>(),
+      users: new Map<string, number>(),
+    };
+    const addTo = (table: Map<string, number>, createdAt: Date) => {
+      const day = new Date(createdAt);
+      day.setHours(0, 0, 0, 0);
+      const label = bucketLabel(day);
+      table.set(label, (table.get(label) ?? 0) + 1);
+    };
+    for (const row of postDays) addTo(tables.posts, row.createdAt);
+    for (const row of commentDays) addTo(tables.comments, row.createdAt);
+    for (const row of likeDays) addTo(tables.likes, row.createdAt);
+    for (const row of userDays) addTo(tables.users, row.createdAt);
+
+    const dailyStats: AdminDailyStatDTO[] = Array.from({ length: DAYS_WINDOW }, (_, i) => {
+      // i=0 is today: dayStart + (DAYS_WINDOW-1-i) days.
+      const day = new Date(dayStart);
+      day.setDate(day.getDate() + (DAYS_WINDOW - 1 - i));
+      const label = bucketLabel(day);
+      return {
+        date: label,
+        posts: tables.posts.get(label) ?? 0,
+        comments: tables.comments.get(label) ?? 0,
+        likes: tables.likes.get(label) ?? 0,
+        users: tables.users.get(label) ?? 0,
+      };
+    });
 
     const latestPosts = latestPostsRaw.map((p) => ({
       id: p.id,

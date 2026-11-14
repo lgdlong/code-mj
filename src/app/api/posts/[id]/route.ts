@@ -1,5 +1,6 @@
 import { MAX_POST_LENGTH } from "@/lib/constants";
 import { destroyCloudinaryAssets } from "@/server/cloudinary";
+import { postAssetIds } from "@/server/media-cleanup";
 import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages } from "@/server/http";
 import { mapPostForEditor, mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
@@ -104,8 +105,10 @@ export async function DELETE(
       return jsonError("Forbidden", 403);
     }
 
+    // Gather before delete: the cascade removes comments (and their ids) too.
+    const assetIds = await postAssetIds(postId);
     await prisma.post.delete({ where: { id: postId } });
-    await destroyCloudinaryAssets(existing.imagePublicIds);
+    await destroyCloudinaryAssets(assetIds);
 
     return jsonOk({ deleted: true, id: postId });
   } catch (err) {

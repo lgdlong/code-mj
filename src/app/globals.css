@@ -9,6 +9,8 @@
   --ink: #f3f5f7;
   --muted: #777777;
   --border: #2a2a2a;
+  --mention-link: #3897f0;
+  --accent: #3897f0;
   --nav-bg: rgba(16, 16, 16, 0.88);
   --red: #fe0000;
   --red-soft: rgba(254, 0, 0, 0.14);
@@ -30,6 +32,8 @@
   --ink: #101010;
   --muted: #777777;
   --border: #e5e5e5;
+  --mention-link: #3897f0;
+  --accent: #3897f0;
   --nav-bg: rgba(255, 255, 255, 0.88);
   --red: #fe0000;
   --red-soft: #ffebe8;
@@ -583,7 +587,8 @@ button {
   color: var(--red);
 }
 
-.comment-composer-bar {
+/* Composer wrapper: fixed container that can grow (image strip, reply chip). */
+.comment-composer-wrap {
   position: fixed;
   bottom: 0;
   left: 50%;
@@ -595,9 +600,91 @@ button {
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--border);
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+}
+
+/* Inner row keeps the original single-line layout. */
+.comment-composer-bar {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.comment-image-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+.comment-composer-media {
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+
+.comment-reply-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.comment-reply-chip button {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.mention-suggest {
+  position: absolute;
+  bottom: 100%;
+  left: 14px;
+  right: 14px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+}
+
+.mention-suggest-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font: inherit;
+}
+
+.mention-suggest-row.active {
+  background: var(--surface-alt);
+}
+
+.mention-suggest-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: var(--surface-alt);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mention-suggest-name {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .comment-input {

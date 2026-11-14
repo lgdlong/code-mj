@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AdminBadge } from "@/components/admin-badge";
 import { UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
 import type { ProfileDTO } from "@/types/domain";
@@ -9,12 +10,14 @@ interface ProfileHeaderProps {
   profile: ProfileDTO;
   isSelf: boolean;
   onToggleFollow: () => void;
+  onOpenFollowList: (kind: "followers" | "following") => void;
 }
 
 export function ProfileHeader({
   profile,
   isSelf,
   onToggleFollow,
+  onOpenFollowList,
 }: ProfileHeaderProps) {
   const { t } = useAppPreferences();
 
@@ -41,20 +44,7 @@ export function ProfileHeader({
             <span style={{ fontSize: 14, color: "var(--muted)" }}>
               @{profile.username}
             </span>
-            {profile.role === "admin" && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  padding: "2px 8px",
-                  borderRadius: 999,
-                  background: "var(--red-soft)",
-                  color: "var(--red)",
-                }}
-              >
-                Admin
-              </span>
-            )}
+            {profile.role === "admin" && <AdminBadge />}
           </div>
         </div>
 
@@ -74,14 +64,22 @@ export function ProfileHeader({
           color: "var(--muted)",
         }}
       >
-        <span>
+        <button
+          type="button"
+          onClick={() => onOpenFollowList("followers")}
+          style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer" }}
+        >
           <strong style={{ color: "var(--ink)" }}>{profile.followersCount}</strong>{" "}
           {t("followersLabel")}
-        </span>
-        <span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpenFollowList("following")}
+          style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer" }}
+        >
           <strong style={{ color: "var(--ink)" }}>{profile.followingCount}</strong>{" "}
           {t("followingLabel")}
-        </span>
+        </button>
       </div>
 
       <div style={{ marginTop: 14 }}>

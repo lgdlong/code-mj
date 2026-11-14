@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { handleApiError, jsonError, jsonOk } from "@/server/http";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
@@ -14,26 +15,25 @@ export async function POST(
       return jsonError("Invalid comment ID", 400);
     }
 
-    const exists = await prisma.comment.findUnique({
-      where: { id: commentId },
-      select: { id: true },
+    // Same toggle shape as post like: deleteMany count, then create.
+    // FK violation means the comment is gone; no existence pre-check.
+    const removed = await prisma.commentLike.deleteMany({
+      where: { userId: user.id, commentId },
     });
-    if (!exists) return jsonError("Comment not found", 404);
-
-    const existing = await prisma.commentLike.findUnique({
-      where: { userId_commentId: { userId: user.id, commentId } },
-    });
-
-    if (existing) {
-      await prisma.commentLike.delete({
-        where: { userId_commentId: { userId: user.id, commentId } },
-      });
+    if (removed.count > 0) {
       return jsonOk({ liked: false });
     }
 
-    await prisma.commentLike.create({
-      data: { userId: user.id, commentId },
-    });
+    try {
+      await prisma.commentLike.create({
+        data: { userId: user.id, commentId },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+        return jsonError("Comment not found", 404);
+      }
+      throw err;
+    }
     return jsonOk({ liked: true });
   } catch (err) {
     return handleApiError(err, "comments/[id]/like:POST");

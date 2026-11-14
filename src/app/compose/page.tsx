@@ -26,7 +26,7 @@ function ComposeInner() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [content, setContent] = useState("");
-  const { items, total, restore, addFiles, remove, publish, cleanup } = useComposeImages();
+  const { items, total, restore, addFiles, remove, publish, reset } = useComposeImages();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,7 +113,7 @@ function ComposeInner() {
         );
       }
 
-      cleanup();
+      reset();
       showToast(editId ? t("updatedToast") : t("postedToast"));
       router.push("/");
     } catch (err) {

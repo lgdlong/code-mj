@@ -1,5 +1,14 @@
 import { COMMENT_PAGE_SIZE, MAX_COMMENT_LENGTH } from "@/lib/constants";
-import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId } from "@/server/http";
+import { parseMentions } from "@/lib/mentions";
+import {
+  handleApiError,
+  jsonError,
+  jsonOk,
+  parseJsonBody,
+  parsePostId,
+  parsePostImages,
+} from "@/server/http";
+import { mapCommentToDTO } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
 import type { CommentDTO } from "@/types/domain";
@@ -7,6 +16,8 @@ import type { CommentDTO } from "@/types/domain";
 interface CreateCommentBody {
   content?: unknown;
   parentId?: unknown;
+  imageUrls?: unknown;
+  imagePublicIds?: unknown;
 }
 
 export async function GET(
@@ -51,37 +62,7 @@ export async function GET(
 
     const hasMore = rows.length > COMMENT_PAGE_SIZE;
     const pageRows = hasMore ? rows.slice(0, COMMENT_PAGE_SIZE) : rows;
-    const items: CommentDTO[] = pageRows.map((c) => ({
-      id: c.id,
-      postId: c.postId,
-      content: c.content,
-      createdAt: c.createdAt.toISOString(),
-      likesCount: c._count.likes,
-      likedByMe: c.likes.length > 0,
-      author: {
-        id: c.author.id,
-        username: c.author.username,
-        name: c.author.name,
-        image: c.author.image,
-        role: c.author.role === "admin" ? "admin" : "user",
-      },
-      replies: c.replies.map((r) => ({
-        id: r.id,
-        postId: r.postId,
-        parentId: c.id,
-        content: r.content,
-        createdAt: r.createdAt.toISOString(),
-        likesCount: r._count.likes,
-        likedByMe: r.likes.length > 0,
-        author: {
-          id: r.author.id,
-          username: r.author.username,
-          name: r.author.name,
-          image: r.author.image,
-          role: r.author.role === "admin" ? "admin" : "user",
-        },
-      })),
-    }));
+    const items: CommentDTO[] = pageRows.map(mapCommentToDTO);
 
     const nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
     return jsonOk({ items, nextCursor });
@@ -110,10 +91,26 @@ export async function POST(
     if (!body) return jsonError("Invalid JSON body", 400);
 
     const content = typeof body.content === "string" ? body.content.trim() : "";
-    if (!content) return jsonError("Comment content is required", 400, "errCommentEmpty");
+    const parsedImages = parsePostImages(body);
+    if (!parsedImages.ok) return jsonError("Invalid image data", 400, parsedImages.code);
+    const { imageUrls, imagePublicIds } = parsedImages.images;
+
+    if (!content && imageUrls.length === 0) {
+      return jsonError("Comment content is required", 400, "errCommentEmpty");
+    }
     if (content.length > MAX_COMMENT_LENGTH) {
       return jsonError(`Comment exceeds ${MAX_COMMENT_LENGTH} characters`, 400, "errCommentTooLong");
     }
+
+    // Store only handles that exist; unknown ones stay plain text in the content.
+    const handles = content ? parseMentions(content).handles : [];
+    const mentionRows = handles.length
+      ? await prisma.user.findMany({
+          where: { username: { in: handles }, banned: false },
+          select: { username: true },
+        })
+      : [];
+    const mentions = mentionRows.map((u) => u.username);
 
     let parentId: number | null = null;
     if (body.parentId !== undefined && body.parentId !== null) {
@@ -139,6 +136,9 @@ export async function POST(
         authorId: user.id,
         parentId,
         content,
+        imageUrls,
+        imagePublicIds,
+        mentions,
       },
       include: {
         author: {
@@ -153,6 +153,8 @@ export async function POST(
         postId: created.postId,
         parentId: created.parentId,
         content: created.content,
+        imageUrls: created.imageUrls,
+        mentions: created.mentions,
         createdAt: created.createdAt.toISOString(),
         likesCount: 0,
         likedByMe: false,

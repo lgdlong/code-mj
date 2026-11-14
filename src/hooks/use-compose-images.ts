@@ -112,10 +112,12 @@ export function useComposeImages() {
     return { imageUrls, imagePublicIds };
   }, [pending, saved]);
 
-  /** Releases pending previews after a successful post; call before navigating away. */
-  const cleanup = useCallback(() => {
+  /** Clears saved + pending and revokes previews. Call after a successful submit. */
+  const reset = useCallback(() => {
     for (const item of pending) URL.revokeObjectURL(item.previewUrl);
+    setPending([]);
+    setSaved([]);
   }, [pending]);
 
-  return { items, total, restore, addFiles, remove, publish, cleanup };
+  return { items, total, restore, addFiles, remove, publish, reset };
 }

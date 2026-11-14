@@ -12,7 +12,12 @@ import { useAppPreferences } from "@/components/providers";
 
 const ConfirmModal = dynamic(() => import("@/components/confirm-modal").then((m) => m.ConfirmModal), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/report-modal").then((m) => m.ReportModal), { ssr: false });
+const FollowListSheet = dynamic(
+  () => import("@/components/follow-list-sheet").then((m) => m.FollowListSheet),
+  { ssr: false }
+);
 import { readApiError } from "@/lib/client-error";
+import type { FollowListKind } from "@/components/follow-list-sheet";
 import type { PostDTO, ProfileDTO } from "@/types/domain";
 interface ProfileClientProps {
   currentUser: {
@@ -33,6 +38,7 @@ export function ProfileClient({
   const [profile, setProfile] = useState<ProfileDTO>(initialProfile);
   const [posts, setPosts] = useState<PostDTO[]>(initialPosts);
   const [sheetTarget, setSheetTarget] = useState<MoreSheetTarget | null>(null);
+  const [followSheet, setFollowSheet] = useState<FollowListKind | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MoreSheetTarget | null>(null);
   const [reportTarget, setReportTarget] = useState<MoreSheetTarget | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -138,6 +144,7 @@ export function ProfileClient({
         profile={profile}
         isSelf={isSelf}
         onToggleFollow={handleToggleFollow}
+        onOpenFollowList={setFollowSheet}
       />
 
       {posts.length === 0 ? (
@@ -196,6 +203,14 @@ export function ProfileClient({
         onSubmit={submitReport}
         onClose={() => setReportTarget(null)}
       />
+      {followSheet && (
+        <FollowListSheet
+          username={profile.username}
+          kind={followSheet}
+          initialCount={followSheet === "followers" ? profile.followersCount : profile.followingCount}
+          onClose={() => setFollowSheet(null)}
+        />
+      )}
     </AppShell>
   );
 }

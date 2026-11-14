@@ -2,10 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { PostDetailClient } from "@/components/post-detail-client";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 import { parsePostId } from "@/server/http";
-import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
+import { mapCommentToDTO, mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { getServerUser } from "@/server/session";
 import type { CommentDTO } from "@/types/domain";
+
 export default async function PostDetailPage({
   params,
 }: {
@@ -51,37 +52,7 @@ export default async function PostDetailPage({
   const hasMore = rows.length > COMMENT_PAGE_SIZE;
   const commentRows = hasMore ? rows.slice(0, COMMENT_PAGE_SIZE) : rows;
 
-  const initialComments: CommentDTO[] = commentRows.map((c) => ({
-    id: c.id,
-    postId: c.postId,
-    content: c.content,
-    createdAt: c.createdAt.toISOString(),
-    likesCount: c._count.likes,
-    likedByMe: c.likes.length > 0,
-    author: {
-      id: c.author.id,
-      username: c.author.username,
-      name: c.author.name,
-      image: c.author.image,
-      role: c.author.role === "admin" ? "admin" : "user",
-    },
-    replies: c.replies.map((r) => ({
-      id: r.id,
-      postId: r.postId,
-      parentId: c.id,
-      content: r.content,
-      createdAt: r.createdAt.toISOString(),
-      likesCount: r._count.likes,
-      likedByMe: r.likes.length > 0,
-      author: {
-        id: r.author.id,
-        username: r.author.username,
-        name: r.author.name,
-        image: r.author.image,
-        role: r.author.role === "admin" ? "admin" : "user",
-      },
-    })),
-  }));
+  const initialComments: CommentDTO[] = commentRows.map(mapCommentToDTO);
 
   const initialNextCursor = hasMore ? (initialComments[initialComments.length - 1]?.id ?? null) : null;
 

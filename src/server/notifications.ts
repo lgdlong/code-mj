@@ -100,6 +100,7 @@ export async function loadActivity(viewerId: string): Promise<ActivityDTO[]> {
         id: true,
         createdAt: true,
         content: true,
+        imageUrls: true,
         author: { select: ACTOR_SELECT },
         post: { select: { id: true, authorId: true } },
       },
@@ -136,6 +137,7 @@ export async function loadActivity(viewerId: string): Promise<ActivityDTO[]> {
       actor: comment.author,
       postId: comment.post.id,
       preview: comment.content.trim().slice(0, PREVIEW_LENGTH),
+      hasImage: comment.imageUrls.length > 0,
     })),
     ...follows.map((follow) => ({
       id: `f:${follow.follower.id}`,

@@ -126,6 +126,9 @@ export const I18N = {
     likedByEmpty: "Chưa có ai thả tim.",
     loadMoreBtn: "Xem thêm",
     confirmLabel: "Xác nhận",
+    adminBadge: "Quản trị viên",
+    likedByFollowers: "Người theo dõi",
+    likedByFollowing: "Đang theo dõi",
   },
   en: {
     googleBtn: "Continue with Google",
@@ -252,6 +255,9 @@ export const I18N = {
     likedByEmpty: "No likes yet.",
     loadMoreBtn: "See more",
     confirmLabel: "Confirm",
+    adminBadge: "Admin",
+    likedByFollowers: "Followers",
+    likedByFollowing: "Following",
   },
 } as const;
 

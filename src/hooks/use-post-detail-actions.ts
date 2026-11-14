@@ -1,17 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import type { MoreSheetTarget } from "@/components/more-sheet";
 import { useAppPreferences } from "@/components/providers";
 import { readApiError } from "@/lib/client-error";
 import { MAX_COMMENT_LENGTH } from "@/lib/constants";
+import type { CommentComposerMedia } from "@/components/post-detail/comment-composer";
 import type { CommentDTO, PostDTO, ReplyDTO } from "@/types/domain";
 
 export function usePostDetailActions(
   initialPost: PostDTO,
   initialComments: CommentDTO[],
-  initialNextCursor: number | null
+  initialNextCursor: number | null,
+  commentMedia: RefObject<CommentComposerMedia | null>
 ) {
   const router = useRouter();
   const { t, lang, showToast } = useAppPreferences();
@@ -103,21 +105,30 @@ export function usePostDetailActions(
       showToast(t("errNetwork"), "error");
     }
   }
-  async function handleSubmitComment(e: React.FormEvent) {
+  async function handleSubmitComment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const content = commentText.trim();
-    if (!content) return showToast(t("errCommentEmpty"), "error");
+    const imageTotal = commentMedia.current?.total ?? 0;
+    if (!content && imageTotal === 0) return showToast(t("errCommentEmpty"), "error");
     if (content.length > MAX_COMMENT_LENGTH) return showToast(t("errCommentTooLong"), "error");
     if (submitting) return;
     setSubmitting(true);
     try {
+      const media = commentMedia.current;
+      if (!media) return showToast(t("errInvalidResponse"), "error");
+      const images = media.total > 0 ? await media.publish(t) : { imageUrls: [], imagePublicIds: [] };
       const res = await fetch(`/api/posts/${post.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, parentId: replyTarget?.id ?? null }),
+        body: JSON.stringify({
+          content,
+          parentId: replyTarget?.id ?? null,
+          imageUrls: images.imageUrls,
+          imagePublicIds: images.imagePublicIds,
+        }),
       });
       if (!res.ok) return showToast(await readApiError(res, lang, "errCommentSubmit"), "error");
-      const json = (await res.json()) as { data?: ReplyDTO & { parentId: number | null } };
+      const json = (await res.json()) as { data?: (ReplyDTO & { parentId: number | null }) & Pick<CommentDTO, "imageUrls" | "mentions"> };
       if (!json.data) return showToast(t("errInvalidResponse"), "error");
       const created = json.data;
       if (created.parentId) {
@@ -130,6 +141,7 @@ export function usePostDetailActions(
       setPost((prev) => ({ ...prev, commentsCount: prev.commentsCount + 1 }));
       setCommentText("");
       setReplyTarget(null);
+      media.reset();
     } catch {
       showToast(t("errNetwork"), "error");
     } finally {

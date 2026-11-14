@@ -1,4 +1,4 @@
-import type { PostDTO } from "@/types/domain";
+import type { CommentDTO, PostDTO, ReplyDTO } from "@/types/domain";
 
 export const postIncludeForUser = (viewerId: string) => ({
   author: {
@@ -72,4 +72,67 @@ export function mapPostToDTO(post: PostRecordWithMeta): PostDTO {
 /** Editor-only shape: the compose screen needs Cloudinary ids to drop removed assets. */
 export function mapPostForEditor(post: PostRecordWithMeta): PostDTO {
   return { ...mapPostToDTO(post), imagePublicIds: post.imagePublicIds };
+}
+
+export interface CommentRecordWithMeta {
+  id: number;
+  postId: string;
+  parentId: number | null;
+  content: string;
+  imageUrls: string[];
+  mentions: string[];
+  createdAt: Date;
+  author: {
+    id: string;
+    username: string;
+    name: string;
+    image: string | null;
+    role: string;
+  };
+  likes: Array<{ userId: string }>;
+  _count: { likes: number };
+}
+
+export interface CommentRowWithReplies extends CommentRecordWithMeta {
+  replies: CommentRecordWithMeta[];
+}
+
+function mapCommentAuthor(author: CommentRecordWithMeta["author"]) {
+  return {
+    id: author.id,
+    username: author.username,
+    name: author.name,
+    image: author.image,
+    role: author.role === "admin" ? ("admin" as const) : ("user" as const),
+  };
+}
+
+function mapReplyToDTO(reply: CommentRecordWithMeta, parentId: number): ReplyDTO {
+  return {
+    id: reply.id,
+    postId: reply.postId,
+    parentId,
+    content: reply.content,
+    imageUrls: reply.imageUrls,
+    mentions: reply.mentions,
+    createdAt: reply.createdAt.toISOString(),
+    likesCount: reply._count.likes,
+    likedByMe: reply.likes.length > 0,
+    author: mapCommentAuthor(reply.author),
+  };
+}
+
+export function mapCommentToDTO(comment: CommentRowWithReplies): CommentDTO {
+  return {
+    id: comment.id,
+    postId: comment.postId,
+    content: comment.content,
+    imageUrls: comment.imageUrls,
+    mentions: comment.mentions,
+    createdAt: comment.createdAt.toISOString(),
+    likesCount: comment._count.likes,
+    likedByMe: comment.likes.length > 0,
+    author: mapCommentAuthor(comment.author),
+    replies: comment.replies.map((r) => mapReplyToDTO(r, comment.id)),
+  };
 }

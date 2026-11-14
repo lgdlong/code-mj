@@ -1,4 +1,5 @@
 import { destroyCloudinaryAssets } from "@/server/cloudinary";
+import { commentAssetIds, postAssetIds } from "@/server/media-cleanup";
 import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePositiveInt } from "@/server/http";
 import { prisma } from "@/server/prisma";
 import { requireAdminUser } from "@/server/session";
@@ -67,12 +68,17 @@ export async function PATCH(
     }
 
     if (report.targetType === "comment" && report.commentId) {
+      // Gather before delete: the cascade removes replies too.
+      const assetIds = await commentAssetIds(report.commentId);
       await prisma.comment.delete({ where: { id: report.commentId } });
+      await destroyCloudinaryAssets(assetIds);
       return jsonOk({ id: reportId, status: "resolved" });
     }
 
+    // Gather before delete: the cascade removes comment images too.
+    const assetIds = await postAssetIds(report.postId);
     await prisma.post.delete({ where: { id: report.postId } });
-    await destroyCloudinaryAssets(report.post.imagePublicIds);
+    await destroyCloudinaryAssets(assetIds);
     return jsonOk({ id: reportId, status: "resolved" });
   } catch (err) {
     return handleApiError(err, "admin/reports/[id]:PATCH");

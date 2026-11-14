@@ -1,4 +1,6 @@
 import { handleApiError, jsonError, jsonOk, parsePositiveInt } from "@/server/http";
+import { destroyCloudinaryAssets } from "@/server/cloudinary";
+import { commentAssetIds } from "@/server/media-cleanup";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
 
@@ -26,7 +28,10 @@ export async function DELETE(
       user.role === "admin";
     if (!canDelete) return jsonError("Forbidden", 403);
 
+    // Gather before delete: the cascade removes replies (and their ids) too.
+    const assetIds = await commentAssetIds(commentId);
     await prisma.comment.delete({ where: { id: commentId } });
+    await destroyCloudinaryAssets(assetIds);
     return jsonOk({ deleted: true, id: commentId });
   } catch (err) {
     return handleApiError(err, "comments/[id]:DELETE");

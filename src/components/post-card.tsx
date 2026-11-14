@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChatCircle, DotsThree, Heart } from "@phosphor-icons/react";
-import { PostImageLightbox } from "@/components/post-image-lightbox";
+import { MediaGrid } from "@/components/media-grid";
+import { AdminBadge } from "@/components/admin-badge";
 import { useAppPreferences } from "@/components/providers";
 import type { PostDTO } from "@/types/domain";
 
@@ -112,7 +113,6 @@ export function PostCard({
   const router = useRouter();
   const { lang, t } = useAppPreferences();
   const isSelf = post.author.id === currentUserId;
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [likesOpen, setLikesOpen] = useState(false);
 
   return (
@@ -132,6 +132,7 @@ export function PostCard({
             <Link href={`/u/${post.author.username}`} className="post-username">
               {post.author.username}
             </Link>
+            {post.author.role === "admin" && <AdminBadge />}
             <span className="post-time">
               {formatRelativeTime(post.createdAt, lang)}
             </span>
@@ -152,26 +153,7 @@ export function PostCard({
           onClick={() => router.push(`/post/${post.id}`)}
         >
           {post.content && <div className="post-content">{post.content}</div>}
-          {post.imageUrls.length > 0 && (
-            <div
-              className="post-image-grid"
-              data-count={Math.min(post.imageUrls.length, 5)}
-              style={{ cursor: "zoom-in" }}
-            >
-              {post.imageUrls.slice(0, 5).map((url, i) => (
-                <img
-                  key={url}
-                  src={url}
-                  alt="Post attachment"
-                  loading="lazy"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLightboxIndex(i);
-                  }}
-                />
-              ))}
-            </div>
-          )}
+          <MediaGrid urls={post.imageUrls} alt="Post attachment" stopPropagation />
         </div>
 
         <div className="post-actions">
@@ -206,15 +188,6 @@ export function PostCard({
           postId={post.id}
           likesCount={post.likesCount}
           onClose={() => setLikesOpen(false)}
-        />
-      )}
-
-      {lightboxIndex !== null && (
-        <PostImageLightbox
-          urls={post.imageUrls}
-          index={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onNavigate={setLightboxIndex}
         />
       )}
     </article>

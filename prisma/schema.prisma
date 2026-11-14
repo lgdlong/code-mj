@@ -121,6 +121,9 @@ model Comment {
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("CommentReplies")
   content   String
+  imageUrls      String[] @default([]) @map("images")
+  imagePublicIds String[] @default([])
+  mentions       String[] @default([])
   createdAt DateTime  @default(now())
   likes   CommentLike[]
   reports Report[]

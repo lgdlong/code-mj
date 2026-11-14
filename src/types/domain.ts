@@ -15,6 +15,8 @@ export interface ReplyDTO {
   postId: string;
   parentId: number;
   content: string;
+  imageUrls: string[];
+  mentions: string[];
   createdAt: string;
   likesCount: number;
   likedByMe: boolean;
@@ -25,6 +27,8 @@ export interface CommentDTO {
   id: number;
   postId: string;
   content: string;
+  imageUrls: string[];
+  mentions: string[];
   createdAt: string;
   likesCount: number;
   likedByMe: boolean;
