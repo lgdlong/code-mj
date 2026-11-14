@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Likes viewer**: Tapping the heart count on any post opens a likes sheet (`GET /api/posts/[id]/likes`, keyset-paginated 30 per page) listing every member who hearted it, with profile links — visible to all members. The heart icon still toggles the like.
+- **System notifications**: Bell in the header with an unread badge (`GET /api/notifications/unread`, 30s poll) and a `/notifications` page listing new likes, comments, replies, and follows. Read state is a single `UserSetting.notificationsSeenAt` watermark (`POST /api/notifications/seen`); the activity feed is derived from `Like`/`Comment`/`Follow` rows so unlike/unfollow drops its notification and nothing can go stale.
 - **Comment likes**: Members can heart/unheart both top-level comments and level-2 replies (`POST /api/comments/[id]/like`).
 - **YouTube-style level-2 replies & `@mention` links**: Clicking Reply on any level-1 or level-2 comment auto-prefills `@username` in the input, keeps the thread at 2 levels, and highlights `@username` mentions as clickable profile links.
 - **Persistent user preferences**: Added `UserSetting` (`user_setting`) in PostgreSQL and `GET`/`PATCH /api/users/me/settings` so dark/light theme and Vietnamese/English language sync across sessions.

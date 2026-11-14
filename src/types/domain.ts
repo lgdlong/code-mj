@@ -53,6 +53,29 @@ export interface ProfileDTO extends UserSummaryDTO {
   postsCount: number;
 }
 
+export interface LikerDTO {
+  id: string;
+  username: string;
+  name: string;
+  image: string | null;
+  role: "user" | "admin";
+  createdAt: string;
+}
+
+export type ActivityKind = "like" | "comment" | "reply" | "follow";
+
+export interface ActivityDTO {
+  /** Stable React key, unique per actor + target. */
+  id: string;
+  kind: ActivityKind;
+  createdAt: string;
+  read: boolean;
+  actor: Pick<UserSummaryDTO, "id" | "username" | "name" | "image">;
+  postId?: string;
+  preview?: string;
+  hasImage?: boolean;
+}
+
 export interface ReportDTO {
   id: number;
   type: "post" | "comment";

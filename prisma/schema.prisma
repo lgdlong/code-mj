@@ -41,6 +41,7 @@ model UserSetting {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   theme     String   @default("dark")
   lang      String   @default("vi")
+  notificationsSeenAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("user_setting")
@@ -148,6 +149,7 @@ model Like {
   createdAt DateTime @default(now())
 
   @@id([userId, postId])
+  @@index([postId, createdAt])
   @@map("like")
 }
 
@@ -159,6 +161,7 @@ model Follow {
   createdAt   DateTime @default(now())
 
   @@id([followerId, followingId])
+  @@index([followingId, createdAt])
   @@map("follow")
 }
 

@@ -17,3 +17,7 @@ export const RECENT_SEARCH_LIMIT = 10;
 export const SEARCH_USER_LIMIT = 3;
 export const DESKTOP_ADMIN_MIN_WIDTH = 1024;
 export const USERNAME_CHANGE_COOLDOWN_DAYS = 1;
+
+export const NOTIFICATIONS_LIMIT = 50;
+export const LIKERS_PAGE_SIZE = 30;
+export const UNREAD_POLL_MS = 30_000;

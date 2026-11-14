@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  Bell,
   CaretRight,
   Equals,
   HouseSimple,
@@ -12,6 +13,7 @@ import {
   User,
 } from "@phosphor-icons/react";
 import { useAppPreferences } from "@/components/providers";
+import { useUnreadCount } from "@/hooks/use-notifications";
 import { authClient } from "@/lib/auth-client";
 
 interface AppShellProps {
@@ -33,6 +35,7 @@ export function AppShell({
   const router = useRouter();
   const { theme, lang, toggleTheme, toggleLang, t } = useAppPreferences();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: unreadCount = 0 } = useUnreadCount();
 
   const isHome = pathname === "/";
   const isProfile = pathname === `/u/${username}`;
@@ -64,13 +67,28 @@ export function AppShell({
                 />
                 <span className="brand-wordmark">marjames</span>
               </Link>
-              <Link
-                href="/search"
-                className="header-icon-btn"
-                aria-label="Search"
-              >
-                <MagnifyingGlass size={22} weight="bold" />
-              </Link>
+              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Link
+                  href="/search"
+                  className="header-icon-btn"
+                  aria-label="Search"
+                >
+                  <MagnifyingGlass size={22} weight="bold" />
+                </Link>
+                <Link
+                  href="/notifications"
+                  className="header-icon-btn"
+                  aria-label={t("notifications")}
+                  style={{ position: "relative" }}
+                >
+                  <Bell size={22} weight="bold" />
+                  {unreadCount > 0 && (
+                    <span className="header-badge">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              </div>
             </div>
             {headerTabs}
           </header>

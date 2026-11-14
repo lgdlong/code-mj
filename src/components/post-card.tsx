@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -7,6 +8,11 @@ import { ChatCircle, DotsThree, Heart } from "@phosphor-icons/react";
 import { PostImageLightbox } from "@/components/post-image-lightbox";
 import { useAppPreferences } from "@/components/providers";
 import type { PostDTO } from "@/types/domain";
+
+const LikesSheet = dynamic(
+  () => import("@/components/likes-sheet").then((m) => m.LikesSheet),
+  { ssr: false }
+);
 
 interface PostCardProps {
   post: PostDTO;
@@ -16,7 +22,7 @@ interface PostCardProps {
   onOpenMore: (post: PostDTO) => void;
 }
 
-function formatRelativeTime(isoDate: string, lang: "vi" | "en"): string {
+export function formatRelativeTime(isoDate: string, lang: "vi" | "en"): string {
   const diffSec = Math.max(0, Math.floor((Date.now() - new Date(isoDate).getTime()) / 1000));
   if (diffSec < 60) return lang === "vi" ? "Vừa xong" : "Just now";
   const diffMin = Math.floor(diffSec / 60);
@@ -104,9 +110,10 @@ export function PostCard({
   onOpenMore,
 }: PostCardProps) {
   const router = useRouter();
-  const { lang } = useAppPreferences();
+  const { lang, t } = useAppPreferences();
   const isSelf = post.author.id === currentUserId;
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [likesOpen, setLikesOpen] = useState(false);
 
   return (
     <article className="post-card">
@@ -168,15 +175,24 @@ export function PostCard({
         </div>
 
         <div className="post-actions">
-          <button
-            type="button"
-            className={`action-btn ${post.likedByMe ? "liked" : ""}`}
-            onClick={() => onToggleLike(post.id)}
-            aria-label="Like"
-          >
-            <Heart size={19} weight={post.likedByMe ? "fill" : "regular"} />
-            <span>{post.likesCount}</span>
-          </button>
+          <div className="post-like-group">
+            <button
+              type="button"
+              className={`action-btn ${post.likedByMe ? "liked" : ""}`}
+              onClick={() => onToggleLike(post.id)}
+              aria-label="Like"
+            >
+              <Heart size={19} weight={post.likedByMe ? "fill" : "regular"} />
+            </button>
+            <button
+              type="button"
+              className="action-count"
+              onClick={() => setLikesOpen(true)}
+              aria-label={t("likedByTitle")}
+            >
+              {post.likesCount}
+            </button>
+          </div>
 
           <Link href={`/post/${post.id}`} className="action-btn" aria-label="Comments">
             <ChatCircle size={19} />
@@ -184,6 +200,14 @@ export function PostCard({
           </Link>
         </div>
       </div>
+
+      {likesOpen && (
+        <LikesSheet
+          postId={post.id}
+          likesCount={post.likesCount}
+          onClose={() => setLikesOpen(false)}
+        />
+      )}
 
       {lightboxIndex !== null && (
         <PostImageLightbox
