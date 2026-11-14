@@ -99,7 +99,6 @@ export function FeedClient({ currentUser, initialPosts, initialNextCursor }: Fee
           })),
         }
       );
-      void queryClient.invalidateQueries({ queryKey: ["feed"] });
       setDeleteTarget(null);
       showToast(t("deletedToast"));
     } catch {

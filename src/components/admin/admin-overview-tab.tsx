@@ -90,7 +90,7 @@ export function AdminOverviewTab({ stats, lang }: AdminOverviewTabProps) {
 
       <div className="rounded-xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div className="px-4 py-3 text-sm font-bold" style={{ borderBottom: "1px solid var(--border)" }}>
-          {lang === "vi" ? "Top bài viết tương tác cao" : "Top Engaged Posts"}
+          {lang === "vi" ? "Bài viết mới nhất" : "Latest Posts"}
         </div>
         <table className="w-full text-left text-sm border-collapse">
           <thead>
@@ -102,7 +102,7 @@ export function AdminOverviewTab({ stats, lang }: AdminOverviewTabProps) {
             </tr>
           </thead>
           <tbody>
-            {stats.topPosts.map((p) => (
+            {stats.latestPosts.map((p) => (
               <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}>
                 <td className="p-3 font-semibold">@{p.authorUsername}</td>
                 <td className="p-3 max-w-md truncate">{p.content}</td>

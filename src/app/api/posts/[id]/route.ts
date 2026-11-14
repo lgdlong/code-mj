@@ -1,7 +1,7 @@
 import { MAX_POST_LENGTH } from "@/lib/constants";
 import { destroyCloudinaryAssets } from "@/server/cloudinary";
 import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages } from "@/server/http";
-import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
+import { mapPostForEditor, mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
 
@@ -27,7 +27,9 @@ export async function GET(
     });
     if (!post) return jsonError("Post not found", 404);
 
-    return jsonOk(mapPostToDTO(post));
+    const dto =
+      post.authorId === viewer.id ? mapPostForEditor(post) : mapPostToDTO(post);
+    return jsonOk(dto);
   } catch (err) {
     return handleApiError(err, "posts/[id]:GET");
   }

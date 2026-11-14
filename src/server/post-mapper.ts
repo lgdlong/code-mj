@@ -53,7 +53,6 @@ export function mapPostToDTO(post: PostRecordWithMeta): PostDTO {
     id: post.id,
     content: post.content,
     imageUrls: post.imageUrls,
-    imagePublicIds: post.imagePublicIds,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     likesCount: post._count.likes,
@@ -68,4 +67,9 @@ export function mapPostToDTO(post: PostRecordWithMeta): PostDTO {
       isFollowing: post.author.followers.length > 0,
     },
   };
+}
+
+/** Editor-only shape: the compose screen needs Cloudinary ids to drop removed assets. */
+export function mapPostForEditor(post: PostRecordWithMeta): PostDTO {
+  return { ...mapPostToDTO(post), imagePublicIds: post.imagePublicIds };
 }

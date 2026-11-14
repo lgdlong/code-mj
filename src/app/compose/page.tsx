@@ -1,5 +1,6 @@
 "use client";
 
+import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -7,14 +8,16 @@ import { ComposeHeader } from "@/components/compose/compose-header";
 import { ComposeImageGrid } from "@/components/compose/compose-image-grid";
 import { UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
+import { useComposeImages } from "@/hooks/use-compose-images";
+import type { FeedPage } from "@/hooks/use-feed-mutations";
 import { authClient } from "@/lib/auth-client";
 import { readApiError } from "@/lib/client-error";
-import { useComposeImages } from "@/hooks/use-compose-images";
 import { MAX_POST_IMAGES, MAX_POST_LENGTH } from "@/lib/constants";
 import type { PostDTO } from "@/types/domain";
 
 function ComposeInner() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const editIdParam = searchParams.get("edit");
   const editId = editIdParam?.trim() || null;
@@ -40,7 +43,7 @@ function ComposeInner() {
         const json = (await r.json()) as { data?: PostDTO };
         if (!active || !json.data) return;
         setContent(json.data.content);
-        restore(json.data.imageUrls, json.data.imagePublicIds);
+        restore(json.data.imageUrls, json.data.imagePublicIds ?? []);
       } catch {
         if (active) setError(t("errPostLoad"));
       }
@@ -88,10 +91,31 @@ function ComposeInner() {
         throw new Error(await readApiError(res, lang, "errPostSave"));
       }
 
+      const json = (await res.json()) as { data?: PostDTO };
+      const saved = json.data;
+      if (saved) {
+        queryClient.setQueryData<InfiniteData<FeedPage>>(["feed"], (prev) =>
+          prev
+            ? {
+                ...prev,
+                pages: prev.pages.map((page, i) =>
+                  i === 0
+                    ? {
+                        ...page,
+                        items: editId
+                          ? page.items.map((p) => (p.id === saved.id ? saved : p))
+                          : [saved, ...page.items],
+                      }
+                    : page
+                ),
+              }
+            : prev
+        );
+      }
+
       cleanup();
       showToast(editId ? t("updatedToast") : t("postedToast"));
       router.push("/");
-      router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("errPostSave");
       setError(msg);

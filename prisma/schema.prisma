@@ -31,6 +31,8 @@ model User {
   reports   Report[]     @relation("Reporter")
   setting   UserSetting?
 
+  @@index([username(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("user")
 }
 
@@ -104,6 +106,7 @@ model Post {
 
   @@index([authorId])
   @@index([createdAt(sort: Desc)])
+  @@index([content(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("post")
 }
 

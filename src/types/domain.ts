@@ -36,7 +36,8 @@ export interface PostDTO {
   id: string;
   content: string;
   imageUrls: string[];
-  imagePublicIds: string[];
+  /** Only returned to the post author's editor (single-post GET). */
+  imagePublicIds?: string[];
   createdAt: string;
   updatedAt: string;
   likesCount: number;
@@ -84,7 +85,7 @@ export interface AdminStatsDTO {
   active7d: number;
   pendingReports: number;
   dailyStats: AdminDailyStatDTO[];
-  topPosts: Array<{
+  latestPosts: Array<{
     id: string;
     authorUsername: string;
     content: string;

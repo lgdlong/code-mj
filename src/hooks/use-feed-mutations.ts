@@ -33,8 +33,6 @@ export function useFeedMutations() {
       if (!res.ok) {
         queryClient.setQueryData<InfiniteData<FeedPage>>(["feed"], toggle);
         showToast(await readApiError(res, lang, "errLike"), "error");
-      } else {
-        void queryClient.invalidateQueries({ queryKey: ["feed"] });
       }
     } catch {
       queryClient.setQueryData<InfiniteData<FeedPage>>(["feed"], toggle);
@@ -63,8 +61,6 @@ export function useFeedMutations() {
       if (!res.ok) {
         queryClient.setQueryData<InfiniteData<FeedPage>>(["feed"], toggle);
         showToast(await readApiError(res, lang, "errFollow"), "error");
-      } else {
-        void queryClient.invalidateQueries({ queryKey: ["feed"] });
       }
     } catch {
       queryClient.setQueryData<InfiniteData<FeedPage>>(["feed"], toggle);

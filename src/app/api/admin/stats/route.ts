@@ -24,7 +24,7 @@ export async function GET() {
       totalLikes,
       pendingReports,
       activePostAuthors,
-      topPostsRaw,
+      latestPostsRaw,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { banned: true } }),
@@ -39,7 +39,7 @@ export async function GET() {
         distinct: ["authorId"],
       }),
       prisma.post.findMany({
-        take: 10,
+        take: 3,
         orderBy: { createdAt: "desc" },
         include: {
           author: { select: { username: true } },
@@ -48,40 +48,36 @@ export async function GET() {
       }),
     ]);
 
-    const dailyStats: AdminDailyStatDTO[] = [];
-    for (let i = 0; i < DAYS_WINDOW; i++) {
-      const start = new Date(now);
-      start.setHours(0, 0, 0, 0);
-      start.setDate(start.getDate() - i);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
+    // All DAYS_WINDOW days in one round-trip wave; date buckets are independent.
+    const dailyStats: AdminDailyStatDTO[] = await Promise.all(
+      Array.from({ length: DAYS_WINDOW }, async (_, i) => {
+        const start = new Date(now);
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - i);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
 
-      const [posts, comments, likes, users] = await Promise.all([
-        prisma.post.count({ where: { createdAt: { gte: start, lt: end } } }),
-        prisma.comment.count({ where: { createdAt: { gte: start, lt: end } } }),
-        prisma.like.count({ where: { createdAt: { gte: start, lt: end } } }),
-        prisma.user.count({ where: { createdAt: { gte: start, lt: end } } }),
-      ]);
+        const [posts, comments, likes, users] = await Promise.all([
+          prisma.post.count({ where: { createdAt: { gte: start, lt: end } } }),
+          prisma.comment.count({ where: { createdAt: { gte: start, lt: end } } }),
+          prisma.like.count({ where: { createdAt: { gte: start, lt: end } } }),
+          prisma.user.count({ where: { createdAt: { gte: start, lt: end } } }),
+        ]);
 
-      const label = `${String(start.getDate()).padStart(2, "0")}/${String(
-        start.getMonth() + 1
-      ).padStart(2, "0")}`;
-      dailyStats.push({ date: label, posts, comments, likes, users });
-    }
+        const label = `${String(start.getDate()).padStart(2, "0")}/${String(
+          start.getMonth() + 1
+        ).padStart(2, "0")}`;
+        return { date: label, posts, comments, likes, users };
+      })
+    );
 
-    const topPosts = topPostsRaw
-      .map((p) => ({
-        id: p.id,
-        authorUsername: p.author.username,
-        content: p.content,
-        likesCount: p._count.likes,
-        commentsCount: p._count.comments,
-      }))
-      .sort(
-        (a, b) =>
-          b.likesCount + b.commentsCount - (a.likesCount + a.commentsCount)
-      )
-      .slice(0, 3);
+    const latestPosts = latestPostsRaw.map((p) => ({
+      id: p.id,
+      authorUsername: p.author.username,
+      content: p.content,
+      likesCount: p._count.likes,
+      commentsCount: p._count.comments,
+    }));
 
     const payload: AdminStatsDTO = {
       totalUsers,
@@ -94,7 +90,7 @@ export async function GET() {
       active7d: activePostAuthors.length,
       pendingReports,
       dailyStats,
-      topPosts,
+      latestPosts,
     };
 
     return jsonOk(payload);
