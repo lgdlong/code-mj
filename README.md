@@ -109,7 +109,7 @@ cp .env.example .env
 | `BETTER_AUTH_URL` | Public app URL (`http://localhost:3000` locally) |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
-| `ADMIN_EMAIL` | Optional email auto-promoted to `admin` on first sign-up |
+| `ADMIN_EMAIL` | Comma-separated emails auto-promoted to `admin` on first sign-up |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |

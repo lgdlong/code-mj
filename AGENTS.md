@@ -20,7 +20,7 @@ Private, mobile-first Threads-style social web for the **Cortis** fandom, capped
 1. **Auth & Member Cap:**
    - Google OAuth only (`socialProviders.google` in `src/server/auth.ts`).
    - Unauthenticated or banned users are blocked at server/API boundaries (`requireSessionUser`, `getServerUser`) and redirected to `/login`.
-   - `databaseHooks.user.create.before` enforces `MAX_USERS = 1000` (`src/lib/constants.ts`) and optional `ADMIN_EMAIL` bootstrap.
+   - `databaseHooks.user.create.before` enforces `MAX_USERS = 1000` (`src/lib/constants.ts`) and promotes comma-separated `ADMIN_EMAIL` addresses to `admin` on first sign-up.
 2. **Media & Bandwidth Protection:**
    - Max **5 images per post** (`MAX_POST_IMAGES`, `src/lib/constants.ts`); each image gets client-side WebP compression (`browser-image-compression`, `<= 1200px`, `< 0.28 MB`) before signed Cloudinary upload (`/api/upload`).
    - Posts store parallel arrays `imageUrls` / `imagePublicIds` (`Post.imageUrls @map("images")` in `prisma/schema.prisma`).

@@ -49,9 +49,13 @@ export const auth = betterAuth({
             });
           }
 
-          const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-          const isBootstrapAdmin =
-            Boolean(adminEmail) && userData.email?.trim().toLowerCase() === adminEmail;
+          const adminEmails = (process.env.ADMIN_EMAIL ?? "")
+            .split(",")
+            .map((email) => email.trim().toLowerCase())
+            .filter(Boolean);
+          const isBootstrapAdmin = adminEmails.includes(
+            userData.email?.trim().toLowerCase() ?? ""
+          );
 
           return {
             data: {
