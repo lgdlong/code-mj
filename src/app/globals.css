@@ -725,6 +725,7 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
 }
 
 .login-gate { width: 100%; max-width: 460px; }
@@ -743,7 +744,7 @@ button {
 
 .login-wordmark {
   margin: 0;
-  font-size: 13vw;
+  font-size: min(13vw, 74px);
   line-height: 0.84;
   font-weight: 800;
   letter-spacing: -0.045em;
@@ -814,7 +815,6 @@ button {
 
 @media (min-width: 900px) {
   .login-screen {
-    justify-content: flex-end;
     padding: calc(32px + env(safe-area-inset-top)) 32px calc(32px + env(safe-area-inset-bottom));
   }
 
@@ -823,7 +823,7 @@ button {
   .login-lockup img { width: 76px; height: 80px; }
   .login-wordmark { font-size: min(6.4vw, 92px); }
   .login-credit { font-size: 14px; margin-top: 12px; }
-  .login-action { margin-top: 36px; max-width: 420px; }
+  .login-action { margin-top: 36px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
