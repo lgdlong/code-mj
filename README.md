@@ -118,6 +118,7 @@ cp .env.example .env
 
 ```bash
 bun install
+set -a; . ./.env; set +a                            # export DIRECT_URL for psql
 psql "$DIRECT_URL" -f prisma/sql/search-indexes.sql   # pg_trgm + GIN search indexes
 bun --env-file=.env run db:push
 bun --env-file=.env run db:generate
