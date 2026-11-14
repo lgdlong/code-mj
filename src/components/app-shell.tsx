@@ -6,12 +6,14 @@ import { useState } from "react";
 import {
   Bell,
   CaretRight,
-  Equals,
-  HouseSimple,
   MagnifyingGlass,
-  Plus,
-  User,
 } from "@phosphor-icons/react";
+import {
+  SkullHomeIcon,
+  SkullAddIcon,
+  SkullProfileIcon,
+  SkullMenuIcon,
+} from "@/components/icons/skull-icons";
 import { useAppPreferences } from "@/components/providers";
 import { useUnreadCount } from "@/hooks/use-notifications";
 import { authClient } from "@/lib/auth-client";
@@ -103,23 +105,21 @@ export function AppShell({
             className={`nav-item ${isHome ? "active" : ""}`}
             aria-label="Home"
           >
-            <HouseSimple size={24} weight={isHome ? "fill" : "regular"} />
+            <SkullHomeIcon size={26} />
           </Link>
           <Link
             href="/compose"
             className={`nav-item ${pathname === "/compose" ? "active" : ""}`}
             aria-label="Create"
           >
-            <span className="nav-create-box">
-              <Plus size={16} weight="bold" />
-            </span>
+            <SkullAddIcon size={26} />
           </Link>
           <Link
             href={`/u/${username}`}
             className={`nav-item ${isProfile ? "active" : ""}`}
             aria-label="Profile"
           >
-            <User size={24} weight={isProfile ? "fill" : "regular"} />
+            <SkullProfileIcon size={26} />
           </Link>
           <button
             type="button"
@@ -127,7 +127,7 @@ export function AppShell({
             onClick={() => setMenuOpen((prev) => !prev)}
             aria-label="Menu"
           >
-            <Equals size={24} weight="bold" />
+            <SkullMenuIcon size={26} />
           </button>
         </nav>
       )}
