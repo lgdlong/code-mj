@@ -69,7 +69,24 @@ export default function LoginPage() {
             height={56}
             style={{ objectFit: "contain", display: "block" }}
           />
-          <span>marjames</span>
+          <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span>marjames</span>
+            <a
+              href="https://www.threads.com/@thienthansangaa_"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                letterSpacing: 0,
+                lineHeight: 1.2,
+                color: "var(--muted)",
+                textDecoration: "none",
+              }}
+            >
+              @thienthansangaa_
+            </a>
+          </span>
         </div>
 
         {error && (
