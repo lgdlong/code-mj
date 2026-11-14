@@ -6,6 +6,7 @@ export const MAX_NAME_LENGTH = 40;
 export const MAX_USERNAME_LENGTH = 24;
 export const MAX_REPORT_REASON_LENGTH = 200;
 
+export const MAX_POST_IMAGES = 5;
 export const MAX_IMAGE_MB = 10;
 export const MAX_COMPRESSED_MB = 0.28;
 export const MAX_IMAGE_DIMENSION = 1200;

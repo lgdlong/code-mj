@@ -1,13 +1,13 @@
 import { FEED_PAGE_SIZE, MAX_POST_LENGTH } from "@/lib/constants";
-import { generatePostId, handleApiError, isSafeMediaUrl, jsonError, jsonOk, parseJsonBody, parsePostId } from "@/server/http";
+import { generatePostId, handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages } from "@/server/http";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
 
 interface CreatePostBody {
   content?: unknown;
-  imageUrl?: unknown;
-  imagePublicId?: unknown;
+  imageUrls?: unknown;
+  imagePublicIds?: unknown;
 }
 
 export async function GET(req: Request) {
@@ -57,16 +57,13 @@ export async function POST(req: Request) {
     }
 
     const content = typeof body.content === "string" ? body.content.trim() : "";
-    const imageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null;
-    const imagePublicId =
-      typeof body.imagePublicId === "string" && body.imagePublicId.trim()
-        ? body.imagePublicId.trim()
-        : null;
-
-    if (imageUrl && !isSafeMediaUrl(imageUrl)) {
-      return jsonError("Invalid image URL", 400, "errInvalidMediaUrl");
+    const parsed = parsePostImages(body);
+    if (!parsed.ok) {
+      return jsonError(parsed.code === "errTooManyImages" ? "Too many images" : "Invalid image URL", 400, parsed.code);
     }
-    if (!content && !imageUrl) {
+    const { imageUrls, imagePublicIds } = parsed.images;
+
+    if (!content && imageUrls.length === 0) {
       return jsonError("Post must contain text or an image", 400, "errPostEmpty");
     }
     if (content.length > MAX_POST_LENGTH) {
@@ -77,8 +74,8 @@ export async function POST(req: Request) {
         id: generatePostId(),
         authorId: user.id,
         content,
-        imageUrl,
-        imagePublicId,
+        imageUrls,
+        imagePublicIds,
       },
       include: postIncludeForUser(user.id),
     });

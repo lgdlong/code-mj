@@ -29,7 +29,7 @@ export async function GET() {
       prisma.user.count(),
       prisma.user.count({ where: { banned: true } }),
       prisma.post.count(),
-      prisma.post.count({ where: { imageUrl: { not: null } } }),
+      prisma.post.count({ where: { imageUrls: { isEmpty: false } } }),
       prisma.comment.count(),
       prisma.like.count(),
       prisma.report.count({ where: { status: "pending" } }),

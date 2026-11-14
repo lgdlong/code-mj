@@ -55,3 +55,7 @@ export async function destroyCloudinaryAsset(publicId: string | null | undefined
     console.error("[Cloudinary:destroy]", { publicId, err });
   }
 }
+
+export async function destroyCloudinaryAssets(publicIds: string[]): Promise<void> {
+  await Promise.all(publicIds.map((id) => destroyCloudinaryAsset(id)));
+}

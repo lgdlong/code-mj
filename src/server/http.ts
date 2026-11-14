@@ -1,5 +1,6 @@
 import { customAlphabet } from "nanoid";
 import { NextResponse } from "next/server";
+import { MAX_POST_IMAGES } from "@/lib/constants";
 import { ForbiddenError, UnauthorizedError } from "@/server/session";
 
 export function jsonOk<T>(data: T, status = 200): NextResponse {
@@ -55,4 +56,49 @@ export function isSafeMediaUrl(url: string, allowGoogleAvatar = false): boolean 
   } catch {
     return false;
   }
+}
+
+export interface PostImages {
+  imageUrls: string[];
+  imagePublicIds: string[];
+}
+
+export type ParsedPostImages =
+  | { ok: true; images: PostImages }
+  | { ok: false; code: "errInvalidMediaUrl" | "errTooManyImages" };
+
+/** Paired URL/publicId arrays; both must match in length and stay within MAX_POST_IMAGES. */
+export function parsePostImages(body: {
+  imageUrls?: unknown;
+  imagePublicIds?: unknown;
+}): ParsedPostImages {
+  const urls = body.imageUrls ?? [];
+  const ids = body.imagePublicIds ?? [];
+  if (!Array.isArray(urls) || !Array.isArray(ids)) {
+    return { ok: false, code: "errInvalidMediaUrl" };
+  }
+  if (urls.length > MAX_POST_IMAGES || ids.length > MAX_POST_IMAGES) {
+    return { ok: false, code: "errTooManyImages" };
+  }
+  if (urls.length !== ids.length) {
+    return { ok: false, code: "errInvalidMediaUrl" };
+  }
+
+  const imageUrls: string[] = [];
+  const imagePublicIds: string[] = [];
+  for (let i = 0; i < urls.length; i += 1) {
+    const rawUrl = urls[i];
+    const rawId = ids[i];
+    if (typeof rawUrl !== "string" || typeof rawId !== "string") {
+      return { ok: false, code: "errInvalidMediaUrl" };
+    }
+    const url = rawUrl.trim();
+    const publicId = rawId.trim();
+    if (!url || !publicId || !isSafeMediaUrl(url)) {
+      return { ok: false, code: "errInvalidMediaUrl" };
+    }
+    imageUrls.push(url);
+    imagePublicIds.push(publicId);
+  }
+  return { ok: true, images: { imageUrls, imagePublicIds } };
 }

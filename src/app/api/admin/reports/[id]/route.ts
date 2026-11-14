@@ -1,4 +1,4 @@
-import { destroyCloudinaryAsset } from "@/server/cloudinary";
+import { destroyCloudinaryAssets } from "@/server/cloudinary";
 import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePositiveInt } from "@/server/http";
 import { prisma } from "@/server/prisma";
 import { requireAdminUser } from "@/server/session";
@@ -26,7 +26,7 @@ export async function PATCH(
     const report = await prisma.report.findUnique({
       where: { id: reportId },
       include: {
-        post: { select: { id: true, authorId: true, imagePublicId: true } },
+        post: { select: { id: true, authorId: true, imagePublicIds: true } },
         comment: { select: { id: true, authorId: true } },
       },
     });
@@ -71,9 +71,8 @@ export async function PATCH(
       return jsonOk({ id: reportId, status: "resolved" });
     }
 
-    const imagePublicId = report.post.imagePublicId;
     await prisma.post.delete({ where: { id: report.postId } });
-    await destroyCloudinaryAsset(imagePublicId);
+    await destroyCloudinaryAssets(report.post.imagePublicIds);
     return jsonOk({ id: reportId, status: "resolved" });
   } catch (err) {
     return handleApiError(err, "admin/reports/[id]:PATCH");

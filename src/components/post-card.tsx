@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { ChatCircle, DotsThree, Heart, X } from "@phosphor-icons/react";
+import { useState } from "react";
+import { ChatCircle, DotsThree, Heart } from "@phosphor-icons/react";
+import { PostImageLightbox } from "@/components/post-image-lightbox";
 import { useAppPreferences } from "@/components/providers";
 import type { PostDTO } from "@/types/domain";
 
@@ -106,16 +106,8 @@ export function PostCard({
   const router = useRouter();
   const { lang } = useAppPreferences();
   const isSelf = post.author.id === currentUserId;
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightboxOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxOpen]);
   return (
     <article className="post-card">
       <UserAvatar
@@ -153,16 +145,24 @@ export function PostCard({
           onClick={() => router.push(`/post/${post.id}`)}
         >
           {post.content && <div className="post-content">{post.content}</div>}
-          {post.imageUrl && (
+          {post.imageUrls.length > 0 && (
             <div
-              className="post-image-wrap"
+              className="post-image-grid"
+              data-count={Math.min(post.imageUrls.length, 5)}
               style={{ cursor: "zoom-in" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setLightboxOpen(true);
-              }}
             >
-              <img src={post.imageUrl} alt="Post attachment" loading="lazy" />
+              {post.imageUrls.slice(0, 5).map((url, i) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt="Post attachment"
+                  loading="lazy"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex(i);
+                  }}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -185,62 +185,14 @@ export function PostCard({
         </div>
       </div>
 
-      {lightboxOpen &&
-        post.imageUrl &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setLightboxOpen(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              width: "100vw",
-              height: "100dvh",
-              zIndex: 9999,
-              background: "#000000",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={() => setLightboxOpen(false)}
-              style={{
-                position: "fixed",
-                top: 16,
-                left: 16,
-                zIndex: 10000,
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: "rgba(40, 40, 40, 0.85)",
-                color: "#ffffff",
-                display: "grid",
-                placeItems: "center",
-              }}
-            >
-              <X size={18} weight="bold" />
-            </button>
-            <img
-              src={post.imageUrl}
-              alt="Post attachment fullscreen"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: "100vw",
-                height: "100dvh",
-                objectFit: "contain",
-                display: "block",
-              }}
-            />
-          </div>,
-          document.body
-        )}
+      {lightboxIndex !== null && (
+        <PostImageLightbox
+          urls={post.imageUrls}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={setLightboxIndex}
+        />
+      )}
     </article>
   );
 }

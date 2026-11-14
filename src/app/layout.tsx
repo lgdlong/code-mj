@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "marjames",
-  description: "Cortis Fandom Social Web",
+  title: "marjamesstan private web",
+  description: "Private Cortis fandom web",
 };
 
 export const viewport: Viewport = {

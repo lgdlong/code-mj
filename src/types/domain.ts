@@ -35,8 +35,8 @@ export interface CommentDTO {
 export interface PostDTO {
   id: string;
   content: string;
-  imageUrl: string | null;
-  imagePublicId: string | null;
+  imageUrls: string[];
+  imagePublicIds: string[];
   createdAt: string;
   updatedAt: string;
   likesCount: number;

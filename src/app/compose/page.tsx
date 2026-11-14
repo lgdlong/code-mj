@@ -4,14 +4,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { ComposeHeader } from "@/components/compose/compose-header";
-import { ComposeImagePreview } from "@/components/compose/compose-image-preview";
+import { ComposeImageGrid } from "@/components/compose/compose-image-grid";
 import { UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
 import { authClient } from "@/lib/auth-client";
 import { readApiError } from "@/lib/client-error";
-import { uploadImageToCloudinary } from "@/lib/cloudinary-upload";
-import { compressPostImage } from "@/lib/compress-image";
-import { MAX_IMAGE_MB, MAX_POST_LENGTH } from "@/lib/constants";
+import { useComposeImages } from "@/hooks/use-compose-images";
+import { MAX_POST_IMAGES, MAX_POST_LENGTH } from "@/lib/constants";
 import type { PostDTO } from "@/types/domain";
 
 function ComposeInner() {
@@ -24,11 +23,7 @@ function ComposeInner() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imagePublicId, setImagePublicId] = useState<string | null>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [compressedSizeKb, setCompressedSizeKb] = useState<number | null>(null);
+  const { items, total, restore, addFiles, remove, publish, cleanup } = useComposeImages();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,9 +40,7 @@ function ComposeInner() {
         const json = (await r.json()) as { data?: PostDTO };
         if (!active || !json.data) return;
         setContent(json.data.content);
-        setImageUrl(json.data.imageUrl);
-        setImagePublicId(json.data.imagePublicId);
-        setPreviewUrl(json.data.imageUrl);
+        restore(json.data.imageUrls, json.data.imagePublicIds);
       } catch {
         if (active) setError(t("errPostLoad"));
       }
@@ -55,38 +48,22 @@ function ComposeInner() {
     return () => {
       active = false;
     };
+    // restore is stable; intentional single-run fetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId, lang, t]);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
     setError(null);
-    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-      setError(t("errImageTooLarge"));
-      return;
-    }
-    try {
-      const compressed = await compressPostImage(file);
-      setPendingFile(compressed);
-      setCompressedSizeKb(Math.max(1, Math.round(compressed.size / 1024)));
-      setPreviewUrl(URL.createObjectURL(compressed));
-    } catch {
-      setError(t("errImageCompress"));
-    }
-  }
-
-  function removeImage() {
-    setPendingFile(null);
-    setPreviewUrl(null);
-    setImageUrl(null);
-    setImagePublicId(null);
-    setCompressedSizeKb(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (files.length === 0) return;
+    const failure = await addFiles(files);
+    if (failure) setError(t(failure));
   }
 
   async function handleSubmit() {
     const trimmed = content.trim();
-    if (!trimmed && !previewUrl) {
+    if (!trimmed && total === 0) {
       setError(t("errPostEmpty"));
       return;
     }
@@ -98,25 +75,20 @@ function ComposeInner() {
     setSubmitting(true);
     setError(null);
     try {
-      let finalUrl = imageUrl;
-      let finalPublicId = imagePublicId;
-      if (pendingFile) {
-        const uploaded = await uploadImageToCloudinary(pendingFile, t);
-        finalUrl = uploaded.url;
-        finalPublicId = uploaded.publicId;
-      }
+      const { imageUrls, imagePublicIds } = await publish(t);
 
       const endpoint = editId ? `/api/posts/${editId}` : "/api/posts";
       const method = editId ? "PATCH" : "POST";
       const res = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: trimmed, imageUrl: finalUrl, imagePublicId: finalPublicId }),
+        body: JSON.stringify({ content: trimmed, imageUrls, imagePublicIds }),
       });
       if (!res.ok) {
         throw new Error(await readApiError(res, lang, "errPostSave"));
       }
 
+      cleanup();
       showToast(editId ? t("updatedToast") : t("postedToast"));
       router.push("/");
       router.refresh();
@@ -134,7 +106,7 @@ function ComposeInner() {
       <ComposeHeader
         isEdit={Boolean(editId)}
         submitting={submitting}
-        canSubmit={Boolean(content.trim() || previewUrl)}
+        canSubmit={Boolean(content.trim() || total > 0)}
         onCancel={() => router.back()}
         onSubmit={handleSubmit}
       />
@@ -165,20 +137,22 @@ function ComposeInner() {
             }}
           />
 
-          {previewUrl && (
-            <ComposeImagePreview
-              previewUrl={previewUrl}
-              compressedSizeKb={compressedSizeKb}
-              onRemove={removeImage}
-            />
-          )}
+          <ComposeImageGrid items={items} removeLabel={t("removeImage")} onRemove={remove} />
 
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleFileSelect} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+            onChange={handleFileSelect}
+          />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             aria-label={t("addImage")}
-            style={{ width: 32, height: 32, borderRadius: 8, display: "inline-grid", placeItems: "center", color: "var(--muted)" }}
+            disabled={total >= MAX_POST_IMAGES}
+            style={{ width: 32, height: 32, borderRadius: 8, display: "inline-grid", placeItems: "center", color: "var(--muted)", opacity: total >= MAX_POST_IMAGES ? 0.35 : 1, cursor: total >= MAX_POST_IMAGES ? "not-allowed" : "pointer" }}
           >
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="5.5" />

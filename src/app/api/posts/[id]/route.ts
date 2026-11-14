@@ -1,14 +1,14 @@
 import { MAX_POST_LENGTH } from "@/lib/constants";
-import { destroyCloudinaryAsset } from "@/server/cloudinary";
-import { handleApiError, isSafeMediaUrl, jsonError, jsonOk, parseJsonBody, parsePostId } from "@/server/http";
+import { destroyCloudinaryAssets } from "@/server/cloudinary";
+import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages } from "@/server/http";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
 
 interface UpdatePostBody {
   content?: unknown;
-  imageUrl?: unknown;
-  imagePublicId?: unknown;
+  imageUrls?: unknown;
+  imagePublicIds?: unknown;
 }
 
 export async function GET(
@@ -52,41 +52,31 @@ export async function PATCH(
 
     const content =
       typeof body.content === "string" ? body.content.trim() : existing.content;
-    const hasImageUrlField = Object.prototype.hasOwnProperty.call(body, "imageUrl");
-    const nextImageUrl = hasImageUrlField
-      ? typeof body.imageUrl === "string" && body.imageUrl.trim()
-        ? body.imageUrl.trim()
-        : null
-      : existing.imageUrl;
-    const nextImagePublicId = hasImageUrlField
-      ? typeof body.imagePublicId === "string" && body.imagePublicId.trim()
-        ? body.imagePublicId.trim()
-        : null
-      : existing.imagePublicId;
 
-    if (nextImageUrl && !isSafeMediaUrl(nextImageUrl)) {
-      return jsonError("Invalid image URL", 400, "errInvalidMediaUrl");
+    const hasImageFields = "imageUrls" in body || "imagePublicIds" in body;
+    let nextImages = { imageUrls: existing.imageUrls, imagePublicIds: existing.imagePublicIds };
+    if (hasImageFields) {
+      const parsed = parsePostImages(body);
+      if (!parsed.ok) {
+        return jsonError(parsed.code === "errTooManyImages" ? "Too many images" : "Invalid image URL", 400, parsed.code);
+      }
+      nextImages = parsed.images;
     }
-    if (!content && !nextImageUrl) {
+    const { imageUrls, imagePublicIds } = nextImages;
+
+    if (!content && imageUrls.length === 0) {
       return jsonError("Post must contain text or an image", 400, "errPostEmpty");
     }
     if (content.length > MAX_POST_LENGTH) {
       return jsonError(`Post content exceeds ${MAX_POST_LENGTH} characters`, 400, "errPostTooLong");
     }
-    if (
-      existing.imagePublicId &&
-      existing.imagePublicId !== nextImagePublicId
-    ) {
-      await destroyCloudinaryAsset(existing.imagePublicId);
-    }
+
+    const removedIds = existing.imagePublicIds.filter((id) => !imagePublicIds.includes(id));
+    await destroyCloudinaryAssets(removedIds);
 
     const updated = await prisma.post.update({
       where: { id: postId },
-      data: {
-        content,
-        imageUrl: nextImageUrl,
-        imagePublicId: nextImagePublicId,
-      },
+      data: { content, imageUrls, imagePublicIds },
       include: postIncludeForUser(user.id),
     });
 
@@ -113,7 +103,7 @@ export async function DELETE(
     }
 
     await prisma.post.delete({ where: { id: postId } });
-    await destroyCloudinaryAsset(existing.imagePublicId);
+    await destroyCloudinaryAssets(existing.imagePublicIds);
 
     return jsonOk({ deleted: true, id: postId });
   } catch (err) {

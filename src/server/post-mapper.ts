@@ -29,8 +29,8 @@ export const postIncludeForUser = (viewerId: string) => ({
 export interface PostRecordWithMeta {
   id: string;
   content: string;
-  imageUrl: string | null;
-  imagePublicId: string | null;
+  imageUrls: string[];
+  imagePublicIds: string[];
   createdAt: Date;
   updatedAt: Date;
   author: {
@@ -52,8 +52,8 @@ export function mapPostToDTO(post: PostRecordWithMeta): PostDTO {
   return {
     id: post.id,
     content: post.content,
-    imageUrl: post.imageUrl,
-    imagePublicId: post.imagePublicId,
+    imageUrls: post.imageUrls,
+    imagePublicIds: post.imagePublicIds,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     likesCount: post._count.likes,

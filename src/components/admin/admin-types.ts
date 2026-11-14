@@ -4,7 +4,7 @@ export interface AdminPostRow {
   id: string;
   username: string;
   content: string;
-  imageUrl: string | null;
+  imageUrls: string[];
   likes: number;
   comments: number;
   createdAt: string;

@@ -19,7 +19,7 @@ export async function GET() {
         id: p.id,
         username: p.author.username,
         content: p.content,
-        imageUrl: p.imageUrl,
+        imageUrls: p.imageUrls,
         likes: p._count.likes,
         comments: p._count.comments,
         createdAt: p.createdAt.toISOString(),

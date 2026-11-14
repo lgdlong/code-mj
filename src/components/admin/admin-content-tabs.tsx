@@ -32,7 +32,7 @@ export function AdminPostsTab({
               <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}>
                 <td className="p-3 font-semibold">@{p.username}</td>
                 <td className="p-3 max-w-md">{p.content}</td>
-                <td className="p-3">{p.imageUrl ? "Có" : "—"}</td>
+                <td className="p-3">{p.imageUrls.length ? `${p.imageUrls.length} ảnh` : "—"}</td>
                 <td className="p-3">{p.likes} tim · {p.comments} cmt</td>
                 <td className="p-3">
                   <button
