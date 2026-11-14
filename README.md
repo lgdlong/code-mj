@@ -118,9 +118,13 @@ cp .env.example .env
 
 ```bash
 bun install
+psql "$DIRECT_URL" -f prisma/sql/search-indexes.sql   # pg_trgm + GIN search indexes
 bun --env-file=.env run db:push
 bun --env-file=.env run db:generate
 ```
+
+`prisma/sql/search-indexes.sql` must run first: the schema declares GIN trigram indexes,
+which need the `pg_trgm` extension on a fresh database.
 
 ### 4. Run Locally
 
