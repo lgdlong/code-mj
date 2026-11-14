@@ -56,8 +56,9 @@ export async function PATCH(req: Request) {
         const cooldownMs = USERNAME_CHANGE_COOLDOWN_DAYS * MS_PER_DAY;
         if (elapsedMs < cooldownMs) {
           const daysLeft = Math.ceil((cooldownMs - elapsedMs) / MS_PER_DAY);
+          const per = USERNAME_CHANGE_COOLDOWN_DAYS === 1 ? "mỗi ngày" : `mỗi ${USERNAME_CHANGE_COOLDOWN_DAYS} ngày`;
           return jsonError(
-            `Bạn chỉ có thể đổi username mỗi ${USERNAME_CHANGE_COOLDOWN_DAYS} ngày 1 lần (còn ${daysLeft} ngày).`,
+            `Bạn chỉ có thể đổi username ${per} 1 lần (còn ${daysLeft} ngày).`,
             429
           );
         }

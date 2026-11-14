@@ -16,4 +16,4 @@ export const COMMENT_PAGE_SIZE = 15;
 export const RECENT_SEARCH_LIMIT = 10;
 export const SEARCH_USER_LIMIT = 3;
 export const DESKTOP_ADMIN_MIN_WIDTH = 1024;
-export const USERNAME_CHANGE_COOLDOWN_DAYS = 30;
+export const USERNAME_CHANGE_COOLDOWN_DAYS = 1;

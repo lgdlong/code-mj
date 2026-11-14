@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppPreferences } from "@/components/providers";
-import { MAX_BIO_LENGTH, MAX_USERNAME_LENGTH } from "@/lib/constants";
+import { MAX_BIO_LENGTH, MAX_USERNAME_LENGTH, USERNAME_CHANGE_COOLDOWN_DAYS } from "@/lib/constants";
 
 interface EditProfileFieldsProps {
   username: string;
@@ -24,11 +24,20 @@ export function EditProfileFields({
 }: EditProfileFieldsProps) {
   const { lang } = useAppPreferences();
 
+  const cooldownLabel =
+    USERNAME_CHANGE_COOLDOWN_DAYS === 1
+      ? lang === "vi"
+        ? "mỗi ngày 1 lần"
+        : "once a day"
+      : lang === "vi"
+      ? `mỗi ${USERNAME_CHANGE_COOLDOWN_DAYS} ngày 1 lần`
+      : `once every ${USERNAME_CHANGE_COOLDOWN_DAYS} days`;
+
   const cooldownText = canChangeUsername
     ? hasUsedInitialChange
       ? lang === "vi"
-        ? "Có thể đổi (mỗi 30 ngày 1 lần)"
-        : "Available (once every 30 days)"
+        ? `Có thể đổi (${cooldownLabel})`
+        : `Available (${cooldownLabel})`
       : lang === "vi"
       ? "Bạn có sẵn 1 lượt đổi miễn phí lần đầu"
       : "1 free initial change available"
