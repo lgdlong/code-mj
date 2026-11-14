@@ -155,4 +155,4 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Import the repository on [Vercel](https://vercel.com/) and configure all environment variables from `.env.example` (set `BETTER_AUTH_URL` to your production domain).
 2. Add `https://<your-domain>/api/auth/callback/google` to **Authorized redirect URIs** in Google Cloud Console.
-3. Add repository secret `APP_URL` (`https://<your-domain>`) in **GitHub Settings → Secrets and variables → Actions** so `.github/workflows/keep-alive.yml` keeps Supabase active.
+3. Add repository variable `APP_HEALTH_URL` (`https://<your-domain>/api/health`) in **GitHub Settings → Secrets and variables → Actions → Variables** so `.github/workflows/keep-alive.yml` keeps Supabase active.

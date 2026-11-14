@@ -43,7 +43,7 @@ export function EditProfileFields({
       : "1 free initial change available"
     : lang === "vi"
     ? `Bạn có thể đổi lại sau ${cooldownDaysLeft} ngày`
-    : `Available again in ${cooldownDaysLeft} days`;
+    : `Available again in ${cooldownDaysLeft} day${cooldownDaysLeft === 1 ? "" : "s"}`;
 
   return (
     <>
