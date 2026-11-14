@@ -22,8 +22,9 @@ Private, mobile-first Threads-style social web for the **Cortis** fandom, capped
    - Unauthenticated or banned users are blocked at server/API boundaries (`requireSessionUser`, `getServerUser`) and redirected to `/login`.
    - `databaseHooks.user.create.before` enforces `MAX_USERS = 1000` (`src/lib/constants.ts`) and optional `ADMIN_EMAIL` bootstrap.
 2. **Media & Bandwidth Protection:**
-   - Max **1 image per post**; client-side WebP compression (`browser-image-compression`, `<= 1200px`, `< 0.28 MB`) before signed Cloudinary upload (`/api/upload/sign`).
-   - Server validates media URLs via `isSafeMediaUrl` (`src/server/http.ts`) — only `https://res.cloudinary.com/...` (plus Google avatar URLs for profile updates).
+   - Max **5 images per post** (`MAX_POST_IMAGES`, `src/lib/constants.ts`); each image gets client-side WebP compression (`browser-image-compression`, `<= 1200px`, `< 0.28 MB`) before signed Cloudinary upload (`/api/upload`).
+   - Posts store parallel arrays `imageUrls` / `imagePublicIds` (`Post.imageUrls @map("images")` in `prisma/schema.prisma`).
+   - Server validates media payloads via `parsePostImages` (`src/server/http.ts`): ≤ 5 pairs, every URL passes `isSafeMediaUrl` — only `https://res.cloudinary.com/...` (plus Google avatar URLs for profile updates). Delete/edit destroys only removed Cloudinary assets (`destroyCloudinaryAssets`).
 3. **Engagement & Comments:**
    - **Heart-only** likes on posts (`Like`) and comments (`CommentLike`); no public dislikes.
    - **Strict 2-level comments** (`parentId` points only to a top-level comment). Replying to level 1 or level 2 auto-prefills `@username ` in the input (YouTube-style), keeps `parentId` at level 1, and renders `@username` as clickable blue `/u/[username]` links.
