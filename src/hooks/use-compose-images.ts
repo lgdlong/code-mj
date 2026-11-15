@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { compressPostImage } from "@/lib/compress-image";
-import { uploadImageToCloudinary } from "@/lib/cloudinary-upload";
+import { prepareUploadImage } from "@/lib/compress-image";
+import { uploadImage } from "@/lib/cloudinary-upload";
 import { MAX_IMAGE_MB, MAX_POST_IMAGES } from "@/lib/constants";
 import type { I18nKey } from "@/lib/i18n";
 
@@ -71,14 +71,15 @@ export function useComposeImages() {
         continue;
       }
       try {
-        const compressed = await compressPostImage(file);
+        // Untouched original when the server can decode it and it fits the body cap.
+        const upload = await prepareUploadImage(file);
         setPending((prev) => [
           ...prev,
           {
             id: newPendingId(),
-            file: compressed,
-            previewUrl: URL.createObjectURL(compressed),
-            sizeKb: Math.max(1, Math.round(compressed.size / 1024)),
+            file: upload,
+            previewUrl: URL.createObjectURL(upload),
+            sizeKb: Math.max(1, Math.round(upload.size / 1024)),
           },
         ]);
       } catch {
@@ -100,16 +101,15 @@ export function useComposeImages() {
     setSaved((prev) => prev.filter((s) => keySaved(s) !== key));
   }, []);
 
-  /** Uploads pending images and returns the combined, ordered payload for the API. */
+  /** Uploads pending images concurrently and returns the combined, ordered payload for the API. */
   const publish = useCallback(async (t: (key: I18nKey) => string): Promise<ComposeImagePayload> => {
-    const imageUrls = saved.map((s) => s.url);
-    const imagePublicIds = saved.map((s) => s.publicId);
-    for (const item of pending) {
-      const uploaded = await uploadImageToCloudinary(item.file, t); // throws with a readable message
-      imageUrls.push(uploaded.url);
-      imagePublicIds.push(uploaded.publicId);
-    }
-    return { imageUrls, imagePublicIds };
+    const uploaded = await Promise.all(
+      pending.map((item) => uploadImage(item.file, t)) // throws with a readable message
+    );
+    return {
+      imageUrls: [...saved.map((s) => s.url), ...uploaded.map((u) => u.url)],
+      imagePublicIds: [...saved.map((s) => s.publicId), ...uploaded.map((u) => u.publicId)],
+    };
   }, [pending, saved]);
 
   /** Clears saved + pending and revokes previews. Call after a successful submit. */

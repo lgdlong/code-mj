@@ -8,8 +8,14 @@ export const MAX_REPORT_REASON_LENGTH = 200;
 
 export const MAX_POST_IMAGES = 5;
 export const MAX_IMAGE_MB = 10;
-export const MAX_COMPRESSED_MB = 0.28;
-export const MAX_IMAGE_DIMENSION = 1200;
+/** Display ceiling. The server resizes to this with a single encode; the client only uses it when it must re-encode. */
+export const COMPRESS_IMAGE_DIMENSION = 1600;
+/** Client re-encode quality — only for originals above MAX_UPLOAD_BYTES, so the server stays the first real encode. */
+export const CLIENT_IMAGE_QUALITY = 0.95;
+/** Server single-generation WebP quality. */
+export const SERVER_IMAGE_QUALITY = 88;
+/** Originals at or under this size upload untouched (Vercel body cap is 4.5 MB). */
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 export const MAX_VIDEO_MB = 50;
 export const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
@@ -18,6 +24,8 @@ export const MAX_VIDEO_SECONDS = 60;
 export const VIDEO_MIME = "video/mp4";
 export const MOV_MIME = "video/quicktime";
 export const VIDEO_MIMES = [VIDEO_MIME, MOV_MIME];
+/** Server re-encodes files already within COMPRESS_IMAGE_DIMENSION only above this ceiling. */
+export const MAX_STORED_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export const FEED_PAGE_SIZE = 10;
 export const COMMENT_PAGE_SIZE = 15;

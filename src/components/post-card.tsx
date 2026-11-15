@@ -1,15 +1,4 @@
 "use client";
-          {post.videoUrl && (
-            <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
-              <video
-                src={post.videoUrl}
-                controls
-                playsInline
-                preload="metadata"
-                style={{ width: "100%", maxHeight: 420, borderRadius: 12, display: "block", background: "#000" }}
-              />
-            </div>
-          )}
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -165,6 +154,17 @@ export function PostCard({
         >
           {post.content && <div className="post-content">{post.content}</div>}
           <MediaGrid urls={post.imageUrls} alt="Post attachment" stopPropagation />
+          {post.videoUrl && (
+            <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
+              <video
+                src={post.videoUrl}
+                controls
+                playsInline
+                preload="metadata"
+                style={{ width: "100%", maxHeight: 420, borderRadius: 12, display: "block", background: "#000" }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="post-actions">

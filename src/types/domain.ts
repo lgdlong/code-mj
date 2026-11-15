@@ -9,8 +9,6 @@ export interface UserSummaryDTO {
   followersCount: number;
   isFollowing: boolean;
 }
-  videoUrl: string | null;
-  videoPublicKey?: string | null;
 
 export interface ReplyDTO {
   id: number;
@@ -42,8 +40,10 @@ export interface PostDTO {
   id: string;
   content: string;
   imageUrls: string[];
+  videoUrl: string | null;
   /** Only returned to the post author's editor (single-post GET). */
   imagePublicIds?: string[];
+  videoPublicKey?: string | null;
   createdAt: string;
   updatedAt: string;
   likesCount: number;
