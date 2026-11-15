@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  ArrowSquareOut,
   Article,
   ChatCircle,
   Flag,
@@ -12,6 +11,7 @@ import {
   Pulse,
   Users,
 } from "@phosphor-icons/react";
+import { ExternalGlyph } from "@/components/icons";
 import type { Lang } from "@/lib/i18n";
 import type { AdminStatsDTO } from "@/types/domain";
 
@@ -114,7 +114,7 @@ export function AdminOverviewTab({ stats, lang }: AdminOverviewTabProps) {
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold"
                     style={{ border: "1px solid var(--border)" }}
                   >
-                    <ArrowSquareOut size={14} /> Xem bài
+                    <ExternalGlyph /> Xem bài
                   </Link>
                 </td>
               </tr>

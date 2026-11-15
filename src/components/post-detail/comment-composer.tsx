@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImageSquare, X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react";
 import { ComposeImageGrid } from "@/components/compose/compose-image-grid";
+import { ImageGlyph } from "@/components/icons";
 import { useAppPreferences } from "@/components/providers";
 import {
   useComposeImages,
@@ -162,7 +163,7 @@ export function CommentComposer({
           aria-label={t("addImage")}
           disabled={media.total >= 5}
         >
-          <ImageSquare size={22} />
+          <ImageGlyph size={22} />
         </button>
         <input
           ref={inputRef}
