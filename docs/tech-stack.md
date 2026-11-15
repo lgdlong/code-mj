@@ -11,7 +11,8 @@
 | **Hosting** | **Vercel** | Zero-config Next.js deployment, free tier. |
 
 ## Environment Variables Required
-- `DATABASE_URL` (Supabase Postgres connection string)
+- `DATABASE_URL` (Supabase Postgres connection string; pooler URL via `?pgbouncer=true`)
+- `DIRECT_URL` (Supabase direct `:5432` URL used by Prisma CLI for `db:push`/`db:generate`)
 - `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`

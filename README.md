@@ -92,6 +92,7 @@
 - A [Supabase](https://supabase.com/) PostgreSQL project
 - A [Google Cloud Console](https://console.cloud.google.com/) OAuth 2.0 Web Client (`<APP_URL>/api/auth/callback/google`)
 - A [Cloudinary](https://cloudinary.com/) account
+- A [Cloudflare](https://dash.cloudflare.com/) account with an **R2** bucket, a public **custom domain** (never an `r2.dev` URL), and a **CORS policy allowing `PUT` + `content-type`** from the app origins — without CORS the browser video upload fails as a generic network error
 
 ### 2. Environment Variables
 
