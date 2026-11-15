@@ -58,6 +58,7 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("session")
 }
 
@@ -77,6 +78,7 @@ model Account {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  @@index([userId])
   @@map("account")
 }
 
@@ -88,6 +90,7 @@ model Verification {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  @@index([identifier])
   @@map("verification")
 }
 
@@ -107,8 +110,8 @@ model Post {
   likes    Like[]
   reports  Report[]
 
-  @@index([authorId])
-  @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc), id])
   @@index([content(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("post")
 }
@@ -130,8 +133,9 @@ model Comment {
   likes   CommentLike[]
   reports Report[]
 
-  @@index([postId])
-  @@index([parentId])
+  @@index([postId, parentId, createdAt])
+  @@index([parentId, createdAt])
+  @@index([createdAt])
   @@map("comment")
 }
 
@@ -143,6 +147,7 @@ model CommentLike {
   createdAt DateTime @default(now())
 
   @@id([userId, commentId])
+  @@index([commentId])
   @@map("comment_like")
 }
 
@@ -155,6 +160,7 @@ model Like {
 
   @@id([userId, postId])
   @@index([postId, createdAt])
+  @@index([createdAt])
   @@map("like")
 }
 
@@ -183,6 +189,9 @@ model Report {
   status     String   @default("pending") // "pending" | "resolved" | "dismissed"
   createdAt  DateTime @default(now())
 
-  @@index([status])
+  @@index([status, createdAt])
+  @@index([postId])
+  @@index([commentId])
+  @@index([reporterId])
   @@map("report")
 }

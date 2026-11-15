@@ -134,3 +134,26 @@ export function parsePostVideo(body: {
   }
   return { ok: true, video: { videoUrl: url, videoPublicKey: key } };
 }
+
+/**
+ * Stable keyset cursor: rows are ordered by (createdAt, id), so a page boundary must
+ * carry both — ordering by createdAt alone skips or repeats rows that share a timestamp.
+ */
+export interface PageCursor {
+  at: Date;
+  id: string;
+}
+
+export function parsePageCursor(raw: string | null): PageCursor | null {
+  if (!raw) return null;
+  const sep = raw.lastIndexOf("|");
+  if (sep <= 0 || sep === raw.length - 1) return null;
+  const at = new Date(raw.slice(0, sep));
+  if (Number.isNaN(at.getTime())) return null;
+  return { at, id: raw.slice(sep + 1) };
+}
+
+export function pageCursor(at: string | Date, id: string | number): string {
+  const date = at instanceof Date ? at : new Date(at);
+  return `${date.toISOString()}|${id}`;
+}

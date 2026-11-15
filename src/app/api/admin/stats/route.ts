@@ -48,52 +48,41 @@ export async function GET() {
       }),
     ]);
 
-    // 5-day buckets: one findMany per table selecting only createdAt, folded into
-    // day buckets in JS. (groupby-by-timestamp buys nothing over this; raw SQL
-    // date_trunc not worth it at this scale.) Order matches the old shape:
-    // newest day first.
-    const dayStart = new Date(now);
-    dayStart.setHours(0, 0, 0, 0);
-    dayStart.setDate(dayStart.getDate() - (DAYS_WINDOW - 1));
+    // 5-day buckets in one round trip instead of four findMany + JS folding. Day buckets are
+    // formatted in SQL (UTC, matching how Prisma stores timestamps) so no timezone drifts in.
+    const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    dayStart.setUTCDate(dayStart.getUTCDate() - (DAYS_WINDOW - 1));
 
     const bucketLabel = (d: Date) =>
-      `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+      `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
-    const [postDays, commentDays, likeDays, userDays] = await Promise.all([
-      prisma.post.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
-      prisma.comment.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
-      prisma.like.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
-      prisma.user.findMany({ where: { createdAt: { gte: dayStart } }, select: { createdAt: true } }),
-    ]);
+    const dayRows = await prisma.$queryRaw<Array<{ table: string; label: string; count: bigint }>>`
+      SELECT src AS "table", to_char(date_trunc('day', at), 'DD/MM') AS label, count(*) AS count
+      FROM (
+        SELECT 'posts' AS src, "createdAt" AS at FROM "post" WHERE "createdAt" >= ${dayStart}
+        UNION ALL SELECT 'comments', "createdAt" FROM "comment" WHERE "createdAt" >= ${dayStart}
+        UNION ALL SELECT 'likes', "createdAt" FROM "like" WHERE "createdAt" >= ${dayStart}
+        UNION ALL SELECT 'users', "createdAt" FROM "user" WHERE "createdAt" >= ${dayStart}
+      ) s
+      GROUP BY 1, 2
+    `;
 
-    const tables = {
-      posts: new Map<string, number>(),
-      comments: new Map<string, number>(),
-      likes: new Map<string, number>(),
-      users: new Map<string, number>(),
-    };
-    const addTo = (table: Map<string, number>, createdAt: Date) => {
-      const day = new Date(createdAt);
-      day.setHours(0, 0, 0, 0);
-      const label = bucketLabel(day);
-      table.set(label, (table.get(label) ?? 0) + 1);
-    };
-    for (const row of postDays) addTo(tables.posts, row.createdAt);
-    for (const row of commentDays) addTo(tables.comments, row.createdAt);
-    for (const row of likeDays) addTo(tables.likes, row.createdAt);
-    for (const row of userDays) addTo(tables.users, row.createdAt);
+    const counts = new Map<string, number>();
+    for (const row of dayRows) {
+      counts.set(`${row.table}:${row.label}`, Number(row.count));
+    }
 
     const dailyStats: AdminDailyStatDTO[] = Array.from({ length: DAYS_WINDOW }, (_, i) => {
       // i=0 is today: dayStart + (DAYS_WINDOW-1-i) days.
       const day = new Date(dayStart);
-      day.setDate(day.getDate() + (DAYS_WINDOW - 1 - i));
+      day.setUTCDate(day.getUTCDate() + (DAYS_WINDOW - 1 - i));
       const label = bucketLabel(day);
       return {
         date: label,
-        posts: tables.posts.get(label) ?? 0,
-        comments: tables.comments.get(label) ?? 0,
-        likes: tables.likes.get(label) ?? 0,
-        users: tables.users.get(label) ?? 0,
+        posts: counts.get(`posts:${label}`) ?? 0,
+        comments: counts.get(`comments:${label}`) ?? 0,
+        likes: counts.get(`likes:${label}`) ?? 0,
+        users: counts.get(`users:${label}`) ?? 0,
       };
     });
 

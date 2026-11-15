@@ -1,5 +1,5 @@
 import { FEED_PAGE_SIZE, MAX_POST_LENGTH } from "@/lib/constants";
-import { generatePostId, handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages, parsePostVideo } from "@/server/http";
+import { generatePostId, handleApiError, jsonError, jsonOk, pageCursor, parseJsonBody, parsePageCursor, parsePostImages, parsePostVideo } from "@/server/http";
 import { verifyVideoObject } from "@/server/media-storage";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
@@ -18,26 +18,34 @@ export async function GET(req: Request) {
     const viewer = await requireSessionUser();
     const { searchParams } = new URL(req.url);
     const tab = searchParams.get("tab") === "following" ? "following" : "all";
-    const cursorRaw = searchParams.get("cursor");
-    const cursor = cursorRaw ? parsePostId(cursorRaw) : null;
+    const cursor = parsePageCursor(searchParams.get("cursor"));
 
     const posts = await prisma.post.findMany({
       where: {
         author: { banned: false },
-        ...(tab === "following" && {
-          // Own posts + posts of people I follow, in one query (no pre-fetch of ids).
-          OR: [{ authorId: viewer.id }, { author: { followers: { some: { followerId: viewer.id } } } }],
-        }),
+        AND: [
+          ...(tab === "following"
+            ? [
+                {
+                  // Own posts + posts of people I follow, in one query (no pre-fetch of ids).
+                  OR: [{ authorId: viewer.id }, { author: { followers: { some: { followerId: viewer.id } } } }],
+                },
+              ]
+            : []),
+          ...(cursor
+            ? [{ OR: [{ createdAt: { lt: cursor.at } }, { createdAt: cursor.at, id: { lt: cursor.id } }] }]
+            : []),
+        ],
       },
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: FEED_PAGE_SIZE + 1,
       include: postIncludeForUser(viewer.id),
     });
 
     const hasMore = posts.length > FEED_PAGE_SIZE;
     const items = (hasMore ? posts.slice(0, FEED_PAGE_SIZE) : posts).map(mapPostToDTO);
-    const nextCursor = hasMore ? items[items.length - 1]?.id ?? null : null;
+    const last = hasMore ? posts[FEED_PAGE_SIZE - 1] : null;
+    const nextCursor = last ? pageCursor(last.createdAt, last.id) : null;
 
     return jsonOk({ items, nextCursor });
   } catch (err) {

@@ -4,7 +4,9 @@ import {
   handleApiError,
   jsonError,
   jsonOk,
+  pageCursor,
   parseJsonBody,
+  parsePageCursor,
   parsePostId,
   parsePostImages,
 } from "@/server/http";
@@ -31,14 +33,19 @@ export async function GET(
     if (!postId) return jsonError("Invalid post ID", 400);
 
     const { searchParams } = new URL(req.url);
-    const cursorRaw = searchParams.get("cursor");
-    const cursorId = cursorRaw ? Number.parseInt(cursorRaw, 10) : null;
-    const cursor = cursorId && Number.isInteger(cursorId) && cursorId > 0 ? cursorId : null;
+    const cursor = parsePageCursor(searchParams.get("cursor"));
+    const cursorId = cursor ? Number.parseInt(cursor.id, 10) : null;
 
     const rows = await prisma.comment.findMany({
-      where: { postId, parentId: null, author: { banned: false } },
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { createdAt: "asc" },
+      where: {
+        postId,
+        parentId: null,
+        author: { banned: false },
+        ...(cursor && cursorId && Number.isInteger(cursorId)
+          ? { OR: [{ createdAt: { gt: cursor.at } }, { createdAt: cursor.at, id: { gt: cursorId } }] }
+          : {}),
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       take: COMMENT_PAGE_SIZE + 1,
       include: {
         author: {
@@ -64,7 +71,7 @@ export async function GET(
     const pageRows = hasMore ? rows.slice(0, COMMENT_PAGE_SIZE) : rows;
     const items: CommentDTO[] = pageRows.map(mapCommentToDTO);
 
-    const nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
+    const nextCursor = hasMore ? pageCursor(pageRows[pageRows.length - 1].createdAt, pageRows[pageRows.length - 1].id) : null;
     return jsonOk({ items, nextCursor });
   } catch (err) {
     return handleApiError(err, "posts/[id]/comments:GET");
