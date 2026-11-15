@@ -20,7 +20,7 @@ interface PostDetailClientProps {
   currentUser: { id: string; username: string };
   initialPost: PostDTO;
   initialComments: CommentDTO[];
-  initialNextCursor: number | null;
+  initialNextCursor: string | null;
 }
 
 export function PostDetailClient({

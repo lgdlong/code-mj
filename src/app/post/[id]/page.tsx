@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { PostDetailClient } from "@/components/post-detail-client";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
-import { parsePostId } from "@/server/http";
+import { pageCursor, parsePostId } from "@/server/http";
 import { mapCommentToDTO, mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { getServerUser } from "@/server/session";
@@ -27,7 +27,7 @@ export default async function PostDetailPage({
 
   const rows = await prisma.comment.findMany({
     where: { postId, parentId: null, author: { banned: false } },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     take: COMMENT_PAGE_SIZE + 1,
     include: {
       author: {
@@ -37,7 +37,7 @@ export default async function PostDetailPage({
       likes: { where: { userId: viewer.id }, select: { userId: true } },
       replies: {
         where: { author: { banned: false } },
-        orderBy: { createdAt: "asc" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         include: {
           author: {
             select: { id: true, username: true, name: true, image: true, role: true },
@@ -54,7 +54,8 @@ export default async function PostDetailPage({
 
   const initialComments: CommentDTO[] = commentRows.map(mapCommentToDTO);
 
-  const initialNextCursor = hasMore ? (initialComments[initialComments.length - 1]?.id ?? null) : null;
+  const lastComment = hasMore ? initialComments[initialComments.length - 1] : null;
+  const initialNextCursor = lastComment ? pageCursor(lastComment.createdAt, lastComment.id) : null;
 
   return (
     <PostDetailClient

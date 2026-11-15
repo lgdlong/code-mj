@@ -12,14 +12,14 @@ import type { CommentDTO, PostDTO, ReplyDTO } from "@/types/domain";
 export function usePostDetailActions(
   initialPost: PostDTO,
   initialComments: CommentDTO[],
-  initialNextCursor: number | null,
+  initialNextCursor: string | null,
   commentMedia: RefObject<CommentComposerMedia | null>
 ) {
   const router = useRouter();
   const { t, lang, showToast } = useAppPreferences();
   const [post, setPost] = useState<PostDTO>(initialPost);
   const [comments, setComments] = useState<CommentDTO[]>(initialComments);
-  const [nextCursor, setNextCursor] = useState<number | null>(initialNextCursor);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [loadingMore, setLoadingMore] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [replyTarget, setReplyTarget] = useState<{ id: number; username: string } | null>(null);
@@ -35,7 +35,7 @@ export function usePostDetailActions(
     try {
       const res = await fetch(`/api/posts/${post.id}/comments?cursor=${nextCursor}`);
       if (!res.ok) return;
-      const json = (await res.json()) as { data?: { items: CommentDTO[]; nextCursor: number | null } };
+      const json = (await res.json()) as { data?: { items: CommentDTO[]; nextCursor: string | null } };
       if (!json.data) return;
       const { items, nextCursor: next } = json.data;
       setComments((prev) => {
