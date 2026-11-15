@@ -27,8 +27,8 @@
   - Sticky top header, bottom navigation on mobile, and a centered `620px` feed column with left sidebar on desktop.
   - **Dark theme** and **Vietnamese (`vi`)** enabled by default, with user preferences (`dark`/`light`, `vi`/`en`) persisted in PostgreSQL (`user_setting`).
 - **Posts & Media Optimization**
-  - Text posts up to 500 chars with up to **1 image** per post.
-  - Client-side WebP compression (`browser-image-compression`, max `1200px`, `< 300 KB`) before signed direct upload to **Cloudinary**.
+  - Text posts up to 500 chars with up to **5 images** and **1 video** per post.
+  - Images: originals upload untouched when `jpeg/png/webp` and ≤ 4 MB; larger or other formats are re-encoded client-side (1600px WebP q0.95), then `/api/upload` does at most one `sharp` pass (1600px WebP q88, only when oversized or above 2 MB) before streaming to **Cloudinary**. Video goes straight to **Cloudflare R2** with a presigned `PUT` (MP4/MOV, H.264 only, ≤ 60 s, ≤ 50 MB).
   - **For You** and **Following** feeds powered by cursor pagination and TanStack Query.
 - **Engagement & 2-Level Comments**
   - Instagram-style **Heart** likes on both **posts** and **comments** (no public dislikes).
@@ -53,7 +53,7 @@
 | **Data Fetching** | TanStack Query `5.107.1` |
 | **Authentication** | Better Auth `1.7.23` (Google OAuth + Prisma Adapter) |
 | **Database & ORM** | PostgreSQL (Supabase) + Prisma `7.10.1` (`@prisma/adapter-pg`) |
-| **Media** | Cloudinary `2.11.0` + `browser-image-compression` `2.0.2` |
+| **Media** | Cloudinary `2.11.0` + `sharp` `0.35.5` (images); Cloudflare R2 with presigned uploads (video) |
 | **Hosting** | Vercel |
 
 ---
@@ -113,6 +113,11 @@ cp .env.example .env
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
+| `R2_ACCOUNT_ID` | Cloudflare account ID (video uploads) |
+| `R2_ACCESS_KEY_ID` | R2 access key ID |
+| `R2_SECRET_ACCESS_KEY` | R2 secret access key |
+| `R2_BUCKET` | R2 bucket name (`marjames-media`) |
+| `R2_PUBLIC_BASE_URL` | Public bucket domain — https, custom domain, never `r2.dev` |
 
 ### 3. Install & Push Database Schema
 
