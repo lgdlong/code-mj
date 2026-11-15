@@ -1,6 +1,6 @@
 {
   "name": "cortis-fandom",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "bun --bun next dev",
@@ -12,6 +12,8 @@
     "db:push": "bunx --bun prisma db push"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1169.0",
+    "@aws-sdk/s3-request-presigner": "^3.1169.0",
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
@@ -25,6 +27,7 @@
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.8"
   },
   "devDependencies": {
