@@ -3,9 +3,11 @@
 import { type InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { X } from "@phosphor-icons/react";
 import { AppShell } from "@/components/app-shell";
 import { ComposeHeader } from "@/components/compose/compose-header";
 import { ComposeImageGrid } from "@/components/compose/compose-image-grid";
+import { ImageGlyph, VideoGlyph } from "@/components/icons";
 import { UserAvatar } from "@/components/post-card";
 import { useAppPreferences } from "@/components/providers";
 import { useComposeImages } from "@/hooks/use-compose-images";
@@ -13,6 +15,7 @@ import type { FeedPage } from "@/hooks/use-feed-mutations";
 import { authClient } from "@/lib/auth-client";
 import { readApiError } from "@/lib/client-error";
 import { MAX_POST_IMAGES, MAX_POST_LENGTH } from "@/lib/constants";
+import { uploadVideo, VideoUploadError, type UploadedVideo } from "@/lib/video-upload";
 import type { PostDTO } from "@/types/domain";
 
 function ComposeInner() {
@@ -25,8 +28,11 @@ function ComposeInner() {
   const { data: session } = authClient.useSession();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
   const [content, setContent] = useState("");
   const { items, total, restore, addFiles, remove, publish, reset } = useComposeImages();
+  const [video, setVideo] = useState<UploadedVideo | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +50,9 @@ function ComposeInner() {
         if (!active || !json.data) return;
         setContent(json.data.content);
         restore(json.data.imageUrls, json.data.imagePublicIds ?? []);
+        if (json.data.videoUrl && json.data.videoPublicKey) {
+          setVideo({ url: json.data.videoUrl, key: json.data.videoPublicKey, sizeKb: 0 });
+        }
       } catch {
         if (active) setError(t("errPostLoad"));
       }
@@ -64,9 +73,26 @@ function ComposeInner() {
     if (failure) setError(t(failure));
   }
 
+  async function handleVideoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    setError(null);
+    if (!file) return;
+    setUploadingVideo(true);
+    try {
+      // shortcut: abandoning the composer orphans the R2 object (no cleanup job yet); add an owner-scoped delete when storage cost matters.
+      setVideo(await uploadVideo(file));
+    } catch (err) {
+      const key = err instanceof VideoUploadError ? err.code : "errVideoUpload";
+      setError(t(key));
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
+
   async function handleSubmit() {
     const trimmed = content.trim();
-    if (!trimmed && total === 0) {
+    if (!trimmed && total === 0 && !video) {
       setError(t("errPostEmpty"));
       return;
     }
@@ -85,7 +111,13 @@ function ComposeInner() {
       const res = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: trimmed, imageUrls, imagePublicIds }),
+        body: JSON.stringify({
+          content: trimmed,
+          imageUrls,
+          imagePublicIds,
+          videoUrl: video?.url ?? null,
+          videoPublicKey: video?.key ?? null,
+        }),
       });
       if (!res.ok) {
         throw new Error(await readApiError(res, lang, "errPostSave"));
@@ -114,6 +146,7 @@ function ComposeInner() {
       }
 
       reset();
+      setVideo(null);
       showToast(editId ? t("updatedToast") : t("postedToast"));
       router.push("/");
     } catch (err) {
@@ -130,7 +163,7 @@ function ComposeInner() {
       <ComposeHeader
         isEdit={Boolean(editId)}
         submitting={submitting}
-        canSubmit={Boolean(content.trim() || total > 0)}
+        canSubmit={Boolean(content.trim() || total > 0 || video)}
         onCancel={() => router.back()}
         onSubmit={handleSubmit}
       />
@@ -163,6 +196,37 @@ function ComposeInner() {
 
           <ComposeImageGrid items={items} removeLabel={t("removeImage")} onRemove={remove} />
 
+          {video && (
+            <div style={{ position: "relative", marginTop: 10 }}>
+              <video
+                src={video.url}
+                controls
+                playsInline
+                preload="metadata"
+                style={{ width: "100%", maxHeight: 320, borderRadius: 12, display: "block", background: "#000" }}
+              />
+              <button
+                type="button"
+                onClick={() => setVideo(null)}
+                aria-label={t("removeVideo")}
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  width: 26,
+                  height: 26,
+                  borderRadius: 999,
+                  display: "grid",
+                  placeItems: "center",
+                  background: "rgba(0,0,0,0.65)",
+                  color: "#fff",
+                }}
+              >
+                <X size={14} weight="bold" />
+              </button>
+            </div>
+          )}
+
           <input
             ref={fileInputRef}
             type="file"
@@ -171,19 +235,36 @@ function ComposeInner() {
             hidden
             onChange={handleFileSelect}
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label={t("addImage")}
-            disabled={total >= MAX_POST_IMAGES}
-            style={{ width: 32, height: 32, borderRadius: 8, display: "inline-grid", placeItems: "center", color: "var(--muted)", opacity: total >= MAX_POST_IMAGES ? 0.35 : 1, cursor: total >= MAX_POST_IMAGES ? "not-allowed" : "pointer" }}
-          >
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="5.5" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15.5l-4.2-4.2a2 2 0 0 0-2.8 0L6 19.3" />
-            </svg>
-          </button>
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/mp4,video/quicktime"
+            hidden
+            onChange={handleVideoSelect}
+          />
+          <div style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label={t("addImage")}
+              disabled={total >= MAX_POST_IMAGES}
+              style={{ width: 32, height: 32, borderRadius: 999, display: "inline-grid", placeItems: "center", color: "var(--muted)", opacity: total >= MAX_POST_IMAGES ? 0.35 : 1, cursor: total >= MAX_POST_IMAGES ? "not-allowed" : "pointer" }}
+            >
+              <ImageGlyph />
+            </button>
+            <button
+              type="button"
+              onClick={() => videoInputRef.current?.click()}
+              aria-label={t("addVideo")}
+              disabled={Boolean(video) || uploadingVideo}
+              style={{ width: 32, height: 32, borderRadius: 999, display: "inline-grid", placeItems: "center", color: "var(--muted)", opacity: video || uploadingVideo ? 0.35 : 1, cursor: video || uploadingVideo ? "not-allowed" : "pointer" }}
+            >
+              <VideoGlyph />
+            </button>
+            {uploadingVideo && (
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("uploadingVideo")}</span>
+            )}
+          </div>
 
           {error && <p style={{ color: "var(--red)", fontSize: 13, marginTop: 8 }}>{error}</p>}
         </div>

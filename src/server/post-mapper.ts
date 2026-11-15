@@ -31,6 +31,8 @@ export interface PostRecordWithMeta {
   content: string;
   imageUrls: string[];
   imagePublicIds: string[];
+  videoUrl: string | null;
+  videoPublicKey: string | null;
   createdAt: Date;
   updatedAt: Date;
   author: {
@@ -53,6 +55,7 @@ export function mapPostToDTO(post: PostRecordWithMeta): PostDTO {
     id: post.id,
     content: post.content,
     imageUrls: post.imageUrls,
+    videoUrl: post.videoUrl,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     likesCount: post._count.likes,
@@ -71,7 +74,11 @@ export function mapPostToDTO(post: PostRecordWithMeta): PostDTO {
 
 /** Editor-only shape: the compose screen needs Cloudinary ids to drop removed assets. */
 export function mapPostForEditor(post: PostRecordWithMeta): PostDTO {
-  return { ...mapPostToDTO(post), imagePublicIds: post.imagePublicIds };
+  return {
+    ...mapPostToDTO(post),
+    imagePublicIds: post.imagePublicIds,
+    videoPublicKey: post.videoPublicKey,
+  };
 }
 
 export interface CommentRecordWithMeta {

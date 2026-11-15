@@ -1,5 +1,6 @@
 import { FEED_PAGE_SIZE, MAX_POST_LENGTH } from "@/lib/constants";
-import { generatePostId, handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages } from "@/server/http";
+import { generatePostId, handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages, parsePostVideo } from "@/server/http";
+import { verifyVideoObject } from "@/server/media-storage";
 import { mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
@@ -8,6 +9,8 @@ interface CreatePostBody {
   content?: unknown;
   imageUrls?: unknown;
   imagePublicIds?: unknown;
+  videoUrl?: unknown;
+  videoPublicKey?: unknown;
 }
 
 export async function GET(req: Request) {
@@ -57,8 +60,17 @@ export async function POST(req: Request) {
     }
     const { imageUrls, imagePublicIds } = parsed.images;
 
-    if (!content && imageUrls.length === 0) {
-      return jsonError("Post must contain text or an image", 400, "errPostEmpty");
+    const parsedVideo = parsePostVideo(body);
+    if (!parsedVideo.ok) {
+      return jsonError("Invalid video", 400, parsedVideo.code);
+    }
+    const video = parsedVideo.video;
+    if (video && !(await verifyVideoObject(video.videoPublicKey, user.id))) {
+      return jsonError("Invalid video", 400, "errVideoInvalid");
+    }
+
+    if (!content && imageUrls.length === 0 && !video) {
+      return jsonError("Post must contain text, an image or a video", 400, "errPostEmpty");
     }
     if (content.length > MAX_POST_LENGTH) {
       return jsonError(`Post content exceeds ${MAX_POST_LENGTH} characters`, 400, "errPostTooLong");
@@ -70,6 +82,8 @@ export async function POST(req: Request) {
         content,
         imageUrls,
         imagePublicIds,
+        videoUrl: video?.videoUrl ?? null,
+        videoPublicKey: video?.videoPublicKey ?? null,
       },
       include: postIncludeForUser(user.id),
     });

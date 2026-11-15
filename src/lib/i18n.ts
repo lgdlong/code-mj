@@ -1,4 +1,20 @@
 export type Lang = "vi" | "en";
+    addVideo: "Thêm video (MP4/MOV, tối đa 60 giây / 50 MB)",
+    removeVideo: "Bỏ video",
+    uploadingVideo: "Đang tải video...",
+    errVideoType: "Chỉ hỗ trợ video H.264 (MP4 hoặc MOV). Video quay bằng HEVC cần chuyển sang H.264.",
+    errVideoTooLarge: "Video vượt quá 50 MB.",
+    errVideoDuration: "Video dài quá 60 giây.",
+    errVideoUpload: "Tải video lên thất bại.",
+    errVideoInvalid: "Video không hợp lệ hoặc chưa tải xong.",
+    addVideo: "Add video (MP4/MOV, max 60s / 50 MB)",
+    removeVideo: "Remove video",
+    uploadingVideo: "Uploading video...",
+    errVideoType: "Only H.264 videos are supported (MP4 or MOV). HEVC recordings must be converted first.",
+    errVideoTooLarge: "Video exceeds 50 MB.",
+    errVideoDuration: "Video is longer than 60 seconds.",
+    errVideoUpload: "Video upload failed.",
+    errVideoInvalid: "Invalid or incomplete video upload.",
 
 export const I18N = {
   vi: {

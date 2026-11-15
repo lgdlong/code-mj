@@ -1,6 +1,7 @@
-import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 
 const CLOUDINARY_FOLDER = "cortis-fandom";
+const UPLOAD_TIMEOUT_MS = 30_000;
 
 let configured = false;
 
@@ -10,40 +11,34 @@ function ensureConfigured(): void {
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
+    timeout: UPLOAD_TIMEOUT_MS,
   });
   configured = true;
 }
 
-export interface UploadSignaturePayload {
-  signature: string;
-  timestamp: number;
-  folder: string;
-  cloudName: string;
-  apiKey: string;
+export interface UploadedImage {
+  url: string;
+  publicId: string;
 }
 
-export function createUploadSignature(): UploadSignaturePayload {
+/** Uploads already-optimized bytes server-side, so the sharp pass runs before storage. */
+export async function uploadImageBuffer(buffer: Buffer): Promise<UploadedImage> {
   ensureConfigured();
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
-  if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error("Cloudinary environment variables are not configured");
-  }
-
-  const timestamp = Math.floor(Date.now() / 1000);
-  const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder: CLOUDINARY_FOLDER },
-    apiSecret
+  const { promise, resolve, reject } = Promise.withResolvers<UploadApiResponse>();
+  const stream = cloudinary.uploader.upload_stream(
+    { folder: CLOUDINARY_FOLDER, resource_type: "image" },
+    (err, res) => {
+      if (err || !res) {
+        reject(err ?? new Error("Cloudinary upload returned no result"));
+        return;
+      }
+      resolve(res);
+    }
   );
+  stream.end(buffer);
+  const result = await promise;
 
-  return {
-    signature,
-    timestamp,
-    folder: CLOUDINARY_FOLDER,
-    cloudName,
-    apiKey,
-  };
+  return { url: result.secure_url, publicId: result.public_id };
 }
 
 export async function destroyCloudinaryAsset(publicId: string | null | undefined): Promise<void> {

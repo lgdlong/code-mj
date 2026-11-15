@@ -9,6 +9,8 @@ export interface UserSummaryDTO {
   followersCount: number;
   isFollowing: boolean;
 }
+  videoUrl: string | null;
+  videoPublicKey?: string | null;
 
 export interface ReplyDTO {
   id: number;

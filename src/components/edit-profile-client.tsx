@@ -8,8 +8,8 @@ import { EditProfileFields } from "@/components/profile/edit-profile-fields";
 import { EditProfileHeader } from "@/components/profile/edit-profile-header";
 import { useAppPreferences } from "@/components/providers";
 import { readApiError } from "@/lib/client-error";
-import { uploadImageToCloudinary } from "@/lib/cloudinary-upload";
-import { compressPostImage } from "@/lib/compress-image";
+import { uploadImage } from "@/lib/cloudinary-upload";
+import { prepareUploadImage } from "@/lib/compress-image";
 import {
   MAX_BIO_LENGTH,
   MAX_IMAGE_MB,
@@ -53,9 +53,10 @@ export function EditProfileClient({
       return;
     }
     try {
-      const compressed = await compressPostImage(file);
-      setPendingAvatar(compressed);
-      setImage(URL.createObjectURL(compressed));
+      // Same rule as posts: original bytes only when the server can decode them.
+      const upload = await prepareUploadImage(file);
+      setPendingAvatar(upload);
+      setImage(URL.createObjectURL(upload));
     } catch {
       setError(t("errImageCompress"));
     }
@@ -92,7 +93,7 @@ export function EditProfileClient({
     try {
       let finalImage = image;
       if (pendingAvatar) {
-        const uploaded = await uploadImageToCloudinary(pendingAvatar, t);
+        const uploaded = await uploadImage(pendingAvatar, t);
         finalImage = uploaded.url;
       }
 

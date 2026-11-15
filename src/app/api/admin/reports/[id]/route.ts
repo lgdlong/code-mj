@@ -1,5 +1,6 @@
 import { destroyCloudinaryAssets } from "@/server/cloudinary";
 import { commentAssetIds, postAssetIds } from "@/server/media-cleanup";
+import { deleteVideoObject } from "@/server/media-storage";
 import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePositiveInt } from "@/server/http";
 import { prisma } from "@/server/prisma";
 import { requireAdminUser } from "@/server/session";
@@ -27,7 +28,7 @@ export async function PATCH(
     const report = await prisma.report.findUnique({
       where: { id: reportId },
       include: {
-        post: { select: { id: true, authorId: true, imagePublicIds: true } },
+        post: { select: { id: true, authorId: true, imagePublicIds: true, videoPublicKey: true } },
         comment: { select: { id: true, authorId: true } },
       },
     });
@@ -79,6 +80,7 @@ export async function PATCH(
     const assetIds = await postAssetIds(report.postId);
     await prisma.post.delete({ where: { id: report.postId } });
     await destroyCloudinaryAssets(assetIds);
+    await deleteVideoObject(report.post.videoPublicKey);
     return jsonOk({ id: reportId, status: "resolved" });
   } catch (err) {
     return handleApiError(err, "admin/reports/[id]:PATCH");

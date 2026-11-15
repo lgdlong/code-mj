@@ -1,7 +1,8 @@
 import { MAX_POST_LENGTH } from "@/lib/constants";
 import { destroyCloudinaryAssets } from "@/server/cloudinary";
 import { postAssetIds } from "@/server/media-cleanup";
-import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages } from "@/server/http";
+import { deleteVideoObject, verifyVideoObject } from "@/server/media-storage";
+import { handleApiError, jsonError, jsonOk, parseJsonBody, parsePostId, parsePostImages, parsePostVideo } from "@/server/http";
 import { mapPostForEditor, mapPostToDTO, postIncludeForUser } from "@/server/post-mapper";
 import { prisma } from "@/server/prisma";
 import { requireSessionUser } from "@/server/session";
@@ -10,6 +11,8 @@ interface UpdatePostBody {
   content?: unknown;
   imageUrls?: unknown;
   imagePublicIds?: unknown;
+  videoUrl?: unknown;
+  videoPublicKey?: unknown;
 }
 
 export async function GET(
@@ -67,8 +70,24 @@ export async function PATCH(
     }
     const { imageUrls, imagePublicIds } = nextImages;
 
-    if (!content && imageUrls.length === 0) {
-      return jsonError("Post must contain text or an image", 400, "errPostEmpty");
+    const hasVideoFields = "videoUrl" in body || "videoPublicKey" in body;
+    let nextVideo: { videoUrl: string; videoPublicKey: string } | null =
+      existing.videoUrl && existing.videoPublicKey
+        ? { videoUrl: existing.videoUrl, videoPublicKey: existing.videoPublicKey }
+        : null;
+    if (hasVideoFields) {
+      const parsedVideo = parsePostVideo(body);
+      if (!parsedVideo.ok) return jsonError("Invalid video", 400, parsedVideo.code);
+      nextVideo = parsedVideo.video;
+      if (nextVideo && nextVideo.videoPublicKey !== existing.videoPublicKey) {
+        if (!(await verifyVideoObject(nextVideo.videoPublicKey, user.id))) {
+          return jsonError("Invalid video", 400, "errVideoInvalid");
+        }
+      }
+    }
+
+    if (!content && imageUrls.length === 0 && !nextVideo) {
+      return jsonError("Post must contain text, an image or a video", 400, "errPostEmpty");
     }
     if (content.length > MAX_POST_LENGTH) {
       return jsonError(`Post content exceeds ${MAX_POST_LENGTH} characters`, 400, "errPostTooLong");
@@ -77,11 +96,23 @@ export async function PATCH(
     const removedIds = existing.imagePublicIds.filter((id) => !imagePublicIds.includes(id));
     await destroyCloudinaryAssets(removedIds);
 
+    const removedVideoKey =
+      existing.videoPublicKey && existing.videoPublicKey !== nextVideo?.videoPublicKey
+        ? existing.videoPublicKey
+        : null;
+
     const updated = await prisma.post.update({
       where: { id: postId },
-      data: { content, imageUrls, imagePublicIds },
+      data: {
+        content,
+        imageUrls,
+        imagePublicIds,
+        videoUrl: nextVideo?.videoUrl ?? null,
+        videoPublicKey: nextVideo?.videoPublicKey ?? null,
+      },
       include: postIncludeForUser(user.id),
     });
+    if (removedVideoKey) await deleteVideoObject(removedVideoKey);
 
     return jsonOk(mapPostToDTO(updated));
   } catch (err) {
@@ -109,6 +140,7 @@ export async function DELETE(
     const assetIds = await postAssetIds(postId);
     await prisma.post.delete({ where: { id: postId } });
     await destroyCloudinaryAssets(assetIds);
+    await deleteVideoObject(existing.videoPublicKey);
 
     return jsonOk({ deleted: true, id: postId });
   } catch (err) {

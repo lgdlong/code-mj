@@ -11,6 +11,14 @@ export const MAX_IMAGE_MB = 10;
 export const MAX_COMPRESSED_MB = 0.28;
 export const MAX_IMAGE_DIMENSION = 1200;
 
+export const MAX_VIDEO_MB = 50;
+export const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
+export const MAX_VIDEO_SECONDS = 60;
+/** Only H.264/AAC plays everywhere without transcoding; iPhone writes it into .MOV. */
+export const VIDEO_MIME = "video/mp4";
+export const MOV_MIME = "video/quicktime";
+export const VIDEO_MIMES = [VIDEO_MIME, MOV_MIME];
+
 export const FEED_PAGE_SIZE = 10;
 export const COMMENT_PAGE_SIZE = 15;
 export const RECENT_SEARCH_LIMIT = 10;

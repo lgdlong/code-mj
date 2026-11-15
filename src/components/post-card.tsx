@@ -1,4 +1,15 @@
 "use client";
+          {post.videoUrl && (
+            <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
+              <video
+                src={post.videoUrl}
+                controls
+                playsInline
+                preload="metadata"
+                style={{ width: "100%", maxHeight: 420, borderRadius: 12, display: "block", background: "#000" }}
+              />
+            </div>
+          )}
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
