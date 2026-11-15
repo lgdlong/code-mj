@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-16
+
 ### Added
+- **Video posts on Cloudflare R2**: One video per post alongside up to 5 images. `POST /api/upload/video` returns a 10-minute presigned `PUT`; the browser uploads straight to R2 (Vercel caps bodies at 4.5 MB, so the file is never proxied). Limits `MAX_VIDEO_MB` 50 / `MAX_VIDEO_SECONDS` 60, containers `video/mp4` + `video/quicktime`, **H.264 only** — HEVC (`hvc1`/`hev1`, iPhone "High Efficiency") is refused by a client-side byte scan because there is no transcode worker. `verifyVideoObject` HEADs the object (size, content-type, owner prefix `vid/<userId>/`) before persisting; deletes go through `deleteVideoObject`.
 - **Likes viewer**: Tapping the heart count on any post opens a likes sheet (`GET /api/posts/[id]/likes`, keyset-paginated 30 per page) listing every member who hearted it, with profile links — visible to all members. The heart icon still toggles the like.
 - **System notifications**: Bell in the header with an unread badge (`GET /api/notifications/unread`, 30s poll) and a `/notifications` page listing new likes, comments, replies, and follows. Read state is a single `UserSetting.notificationsSeenAt` watermark (`POST /api/notifications/seen`); the activity feed is derived from `Like`/`Comment`/`Follow` rows so unlike/unfollow drops its notification and nothing can go stale.
 - **Comment likes**: Members can heart/unheart both top-level comments and level-2 replies (`POST /api/comments/[id]/like`).
@@ -20,9 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI workflow & community documentation**: Added `.github/workflows/ci.yml` for automatic Prisma generate, TypeScript typecheck, and Next.js build on push/PR, and updated `README.md` (with mobile UI screenshots in `docs/screenshots/`), `AGENTS.md`, and `CHANGELOG.md`.
 
 ### Changed
+- **Quality-first images + server-side optimization**: Removed the 0.28 MB client target that produced visibly degraded photos. Originals now upload untouched when they are `jpeg/png/webp` and `<= 4 MB`; everything else (larger files, HEIC and other containers sharp's prebuilt binaries cannot decode) is re-encoded client-side (1600px WebP q0.95). `/api/upload` became a multipart proxy: `optimizeImage` does at most one lossy generation, all with `sharp` (resize+WebP at 1600px q88 only when the image is oversized or above 2 MB), then streams the bytes to Cloudinary, replacing the browser-side signed upload. `publish()` uploads the batch concurrently. A TinyPNG/Tinify pass was built, measured as lossy (max channel diff 52/255, 500 compressions/month, 1.5–8 s per image) and **removed**.
 - **Serverless & DB latency optimization**: Pinned Vercel Functions to `icn1` (Seoul, co-located with Supabase `ap-northeast-2`), enabled Better Auth `session.cookieCache`, deduplicated `getServerUser` with `React.cache`, and parallelized `/u/[username]` SSR queries.
 - Set **Dark theme** and **Vietnamese (`vi`)** as the default experience when no saved user preference exists.
 - Unified mobile `.bottom-nav` active/hover items and `.nav-create-box` to circular/pill `border-radius: 999px`.
+- **Rounded icon set**: Every square-bodied Phosphor glyph (`VideoCamera`, `ImageSquare`, `ArrowSquareOut`) is replaced by a hand-drawn rounded glyph in `src/components/icons.tsx` (`ImageGlyph`, `VideoGlyph`, `ExternalGlyph`), shared by the composer, the comment composer and the admin tables; icon-only buttons use circular hit areas.
 - Replaced the wide `@username ×` reply chip in the comment composer bar with inline `@username` input prefill so the Send button is never clipped on narrow screens, and removed the `"Tối đa 2 tầng bình luận"` hint text.
 
 ### Fixed
@@ -41,5 +46,6 @@ Initial release of **marjames** — private Threads-style social web for the Cor
 - **Desktop admin dashboard (`/admin`)**: Overview stats, post/comment moderation, user ban/unban, and report resolution.
 - **Supabase keep-alive**: Real database ping on `/api/health` paired with Vercel Cron (`vercel.json`) and GitHub Actions (`.github/workflows/keep-alive.yml`).
 
-[Unreleased]: https://github.com/lgdlong/code-mj/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/lgdlong/code-mj/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/lgdlong/code-mj/releases/tag/v1.0.0
 [0.1.0]: https://github.com/lgdlong/code-mj/releases/tag/v0.1.0

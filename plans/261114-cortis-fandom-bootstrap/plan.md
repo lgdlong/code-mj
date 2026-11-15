@@ -10,7 +10,7 @@ branch: main
 
 ## Source of Truth (Priority Order)
 1. **Visual & Tokens:** `docs/palette-preview.html` (Cortis triad `#FE0000`, `#FDC101`, `#FF7300`, Dark/Light CSS variables).
-2. **Product & UX Spec:** `docs/decision-report.md` (18 chốt cứng: Login-gated Google-only, 1,000-user cap, 1 image/post, heart-only, 2-tier comments, owner edit/delete/report, Desktop-only Admin).
+2. **Product & UX Spec:** `docs/reports/decision-report.md` (18 chốt cứng: Login-gated Google-only, 1,000-user cap, 1 image/post, heart-only, 2-tier comments, owner edit/delete/report, Desktop-only Admin).
 3. **Reference UI:** `mock-ui/` (`index.html`, `styles.css`, `app.js`, `admin.html`, `admin.js`) — mọi layout, spacing, i18n (VI/EN), theme, action sheet `...`, `/compose`, `/search`, `/admin` đều bám sát `mock-ui/`.
 
 ## Architecture Summary
