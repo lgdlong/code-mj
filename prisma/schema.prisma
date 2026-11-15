@@ -111,7 +111,7 @@ model Post {
   reports  Report[]
 
   @@index([authorId, createdAt(sort: Desc)])
-  @@index([createdAt(sort: Desc), id])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([content(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("post")
 }
@@ -133,7 +133,7 @@ model Comment {
   likes   CommentLike[]
   reports Report[]
 
-  @@index([postId, parentId, createdAt])
+  @@index([postId, parentId, createdAt, id])
   @@index([parentId, createdAt])
   @@index([createdAt])
   @@map("comment")

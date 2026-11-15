@@ -33,7 +33,7 @@ export function usePostDetailActions(
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     try {
-      const res = await fetch(`/api/posts/${post.id}/comments?cursor=${nextCursor}`);
+      const res = await fetch(`/api/posts/${post.id}/comments?cursor=${encodeURIComponent(nextCursor)}`);
       if (!res.ok) return;
       const json = (await res.json()) as { data?: { items: CommentDTO[]; nextCursor: string | null } };
       if (!json.data) return;
