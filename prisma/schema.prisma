@@ -98,6 +98,8 @@ model Post {
   content       String    @default("")
   imageUrls      String[] @default([]) @map("images")
   imagePublicIds String[] @default([])
+  videoUrl       String?  @map("video_url")
+  videoPublicKey String?  @map("video_public_key")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

@@ -1,39 +1,8 @@
 import { customAlphabet } from "nanoid";
 import { NextResponse } from "next/server";
 import { MAX_POST_IMAGES } from "@/lib/constants";
-import { ForbiddenError, UnauthorizedError } from "@/server/session";
 import { videoUrl } from "@/server/media-storage";
-
-export interface PostVideo {
-  videoUrl: string;
-  videoPublicKey: string;
-}
-
-export type ParsedPostVideo =
-  | { ok: true; video: PostVideo | null }
-  | { ok: false; code: "errVideoInvalid" };
-
-/** URL must be exactly the public URL of the key, so the pair cannot be forged or mixed. */
-export function parsePostVideo(body: {
-  videoUrl?: unknown;
-  videoPublicKey?: unknown;
-}): ParsedPostVideo {
-  const rawUrl = body.videoUrl ?? null;
-  const rawKey = body.videoPublicKey ?? null;
-  if (rawUrl === null && rawKey === null) return { ok: true, video: null };
-  if (typeof rawUrl !== "string" || typeof rawKey !== "string") {
-    return { ok: false, code: "errVideoInvalid" };
-  }
-  const key = rawKey.trim();
-  const url = rawUrl.trim();
-  if (!key || !url) return { ok: false, code: "errVideoInvalid" };
-  try {
-    if (videoUrl(key) !== url) return { ok: false, code: "errVideoInvalid" };
-  } catch {
-    return { ok: false, code: "errVideoInvalid" };
-  }
-  return { ok: true, video: { videoUrl: url, videoPublicKey: key } };
-}
+import { ForbiddenError, UnauthorizedError } from "@/server/session";
 
 export function jsonOk<T>(data: T, status = 200): NextResponse {
   return NextResponse.json({ data }, { status });
@@ -133,4 +102,35 @@ export function parsePostImages(body: {
     imagePublicIds.push(publicId);
   }
   return { ok: true, images: { imageUrls, imagePublicIds } };
+}
+
+export interface PostVideo {
+  videoUrl: string;
+  videoPublicKey: string;
+}
+
+export type ParsedPostVideo =
+  | { ok: true; video: PostVideo | null }
+  | { ok: false; code: "errVideoInvalid" };
+
+/** URL must be exactly the public URL of the key, so the pair cannot be forged or mixed. */
+export function parsePostVideo(body: {
+  videoUrl?: unknown;
+  videoPublicKey?: unknown;
+}): ParsedPostVideo {
+  const rawUrl = body.videoUrl ?? null;
+  const rawKey = body.videoPublicKey ?? null;
+  if (rawUrl === null && rawKey === null) return { ok: true, video: null };
+  if (typeof rawUrl !== "string" || typeof rawKey !== "string") {
+    return { ok: false, code: "errVideoInvalid" };
+  }
+  const key = rawKey.trim();
+  const url = rawUrl.trim();
+  if (!key || !url) return { ok: false, code: "errVideoInvalid" };
+  try {
+    if (videoUrl(key) !== url) return { ok: false, code: "errVideoInvalid" };
+  } catch {
+    return { ok: false, code: "errVideoInvalid" };
+  }
+  return { ok: true, video: { videoUrl: url, videoPublicKey: key } };
 }
